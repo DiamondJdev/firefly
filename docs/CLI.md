@@ -5,6 +5,8 @@
 - Provide a Firebase/Vercel-like DX for students to deploy apps to the Firefly k3s cluster.
 - Commands: `firefly login`, `firefly init`, `firefly upload`, `firefly deploy`, `firefly preview`, `firefly logs`, `firefly analytics`, `firefly env`, `firefly projects`.
 - Works on macOS/Linux (ARM/AMD64), GitHub Actions friendly, minimal dependencies.
+- Ships as its own standalone tool, separate from my personal `dj` CLI, so users never need `dj`. `dj` can still hand off to it (`dj pf deploy` runs `pf deploy`).
+- Installed as `firefly`, with a short `pf` alias for everyday use.
 
 ## Command Surface
 
