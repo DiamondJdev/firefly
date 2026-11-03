@@ -1,0 +1,44 @@
+PHOENIX FIREFLY
+
+A personal platform-as-a-service, built for learning and hosting personal projects.
+Design blueprint. The platform is in development; this is not a public hosting service.
+
+DEPLOYMENT
+
+The planned inputs are git push, the pi CLI, and a web dashboard.
+BuildKit builds container images. Zot stores the images on the local network.
+A Rust controller using kube-rs reconciles App resources into Kubernetes workloads.
+Traefik routes requests through Cloudflare Tunnel, without inbound ports open at home.
+
+HARDWARE
+
+The proposed cluster consists of five Raspberry Pi 5 computers with 8GB each,
+one always-on desktop, and a second desktop that contributes when available.
+The machines run NixOS and k3s. State and persistent data stay on always-on machines.
+The build system targets ARM64 and AMD64.
+
+APPLICATIONS
+
+The design covers static sites, single-container apps, and multi-container projects.
+Projects can include their own Postgres or Redis container.
+Each project gets a namespace. App addresses use HTTPS.
+Pull requests are intended to receive preview URLs.
+Logs, per-app metrics, node temperatures, and power usage are planned observability signals.
+
+BUILD ORDER
+
+Foundation: NixOS configuration, k3s, tunnel, registry.
+Deploy core: Rust operator, TypeScript API, pi CLI, image builds, app addresses.
+Previews: GitHub integration, preview lifecycle, sleeping previews.
+Projects and data: multi-container services, persistent volumes, backups, resource tiers.
+Visibility: dashboard, logs, metrics, power and temperature views.
+
+PUBLIC ACCESS
+
+Personal projects are the immediate scope. Portfolio visitors may get access later.
+Outside users, billing, stronger tenant isolation, and custom domains are later decisions.
+There is no public pricing, signup, availability promise, or production service guarantee.
+
+MAKER
+
+https://github.com/diamondjdev
