@@ -165,5 +165,3 @@ pipaas/
 - **Cheap.** Hardware I already own, and the Pis sip power.
 - **Fast.** One push to a live URL, with previews on every PR.
 - **Learning.** A real Kubernetes operator in Rust, a multi-arch build system, and a cluster defined in NixOS.
-
-The full design and decision log lives in the [PiPaaS design doc](https://claude.ai/artifact/73bpeLLPEqjjoeCVDydAq9).
