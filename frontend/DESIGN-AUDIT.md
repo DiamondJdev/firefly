@@ -161,7 +161,6 @@ All assets were created with the built-in ImageGen tool and copied into `fronten
 | --- | --- | --- |
 | `public/images/firefly.png` | Hero | Raster ASCII insect with a pale chartreuse lantern. |
 | `public/images/wing.png` | Capabilities | Raster ASCII wing specimen. |
-| `public/images/cluster.png` | Hardware | Generated monochrome hardware photograph. |
 | `public/images/board.png` | Maker note | Generated monochrome circuit-board photograph. |
 
 The generation prompts are recorded in `.taste-skill/asset-prompts.md`. Self-hosted Geist is distributed with its OFL license in `public/fonts/OFL.txt`.

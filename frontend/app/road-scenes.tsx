@@ -2,13 +2,10 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import {
-  CELL, INK, along, arrival, bay, bezier, blink, city, clamp, cycle, dots, drawRoute, field, frameDots,
+  CELL, INK, along, arrival, bay, bezier, blink, clamp, cycle, dots, drawRoute, field, frameDots,
   horizontalRoad, lengths, nearest, pointAt, rel, roadLevel, tone, fbm, type Point, type Rect,
 } from "./halftone-kit";
 import { enterProgress, makeLayer, useScene } from "./use-scene";
-
-type Lot = { x0: number; x1: number; y0: number; y1: number };
-const inLot = (x: number, y: number, l: Lot) => x >= l.x0 && x < l.x1 && y >= l.y0 && y < l.y1;
 
 /** The pipeline band with a road along its top edge. A car drives Source to Serve and lights each stage. */
 export function Pipeline({ stages }: { stages: [string, string][] }) {
@@ -92,34 +89,6 @@ export function CapabilityJunction({ children }: { children: ReactNode }) {
       {children}
     </div>
   );
-}
-
-/** A strip of neighbourhood under the photo. A route enters from the edge and drives to the house. */
-export function HardwareMap() {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useScene(ref, {
-    animated: true,
-    setup(_, frame) {
-      const grid = { bw: 64, bh: 44, sw: 8, ox: 20, oy: 8 };
-      const bx = Math.floor((frame.w * 0.72 + grid.ox) / grid.bw), by = 2;
-      const lot: Lot = { x0: bx * grid.bw - grid.ox + grid.sw, x1: (bx + 1) * grid.bw - grid.ox, y0: by * grid.bh - grid.oy + grid.sw, y1: (by + 1) * grid.bh - grid.oy };
-      const base = makeLayer(frame, ctx => field(ctx, frame.w, frame.h, (x, y, c, r) => {
-        if (inLot(x, y, lot)) return bay(c, r) < 0.7 ? 4 : 0;
-        return city(x, y, c, r, grid) ? (bay(c, r) < 0.6 ? 5 : 1) : 0;
-      }));
-      const street = (row: number) => row * grid.bh - grid.oy + 4, avenue = (col: number) => col * grid.bw - grid.ox + 4;
-      const turn = Math.floor((frame.w * 0.4 + grid.ox) / grid.bw), door = (lot.x0 + lot.x1) / 2;
-      const route: Point[] = [[0, street(1)], [avenue(turn), street(1)], [avenue(turn), street(by)], [door, street(by)], [door, lot.y0 + 4]];
-      return { base, lot, route };
-    },
-    draw(ctx, { w, h, t, still }, s) {
-      ctx.drawImage(s.base, 0, 0, w, h);
-      const { p, arrived, m } = cycle(t, 4, 2.4);
-      drawRoute(ctx, s.route, still ? 1 : p);
-      if (still || (arrived && blink(m))) arrival(ctx, s.route[4][0], (s.lot.y0 + s.lot.y1) / 2, 4);
-    },
-  });
-  return <canvas ref={ref} className="address-strip" aria-hidden="true" />;
 }
 
 /** Nothing hidden under the hood: rows start assembled and pull apart into an exploded view on scroll. */

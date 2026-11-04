@@ -1,8 +1,7 @@
-import Image from "next/image";
 import Workflow from "./workflow";
 import HeroArtwork from "./hero-artwork";
 import IntentCapacity from "./intent-capacity";
-import { AboutRoute, CapabilityJunction, ExplodedStack, HardwareMap, InvitationRoute, KerbRoad, Pipeline, RampedQuestions } from "./road-scenes";
+import { AboutRoute, CapabilityJunction, ExplodedStack, InvitationRoute, KerbRoad, Pipeline, RampedQuestions } from "./road-scenes";
 
 const questions = [
   ["Can I deploy something today?", "Firefly is in development and currently intended for my own projects. Public access is planned for people who find it through my portfolio, after the deployment path and operating limits are proven."],
@@ -35,7 +34,6 @@ export default function Home() {
         <a className="wordmark" href="#" aria-label="Firefly home">firefly<span aria-hidden="true">*</span></a>
         <nav aria-label="Main navigation">
           <a href="#workflow">The workflow</a>
-          <a href="#hardware">The hardware</a>
           <a href="#about">The why</a>
         </nav>
         <a className="nav-action" href="/blueprint.txt">Read the blueprint <span aria-hidden="true">↗</span></a>
@@ -78,23 +76,6 @@ export default function Home() {
               <a className="text-link" href="/blueprint.txt">See the deployment design <span aria-hidden="true">↗</span></a>
             </div>
           </CapabilityJunction>
-        </section>
-
-        <section id="hardware" className="hardware frame section-space" aria-labelledby="hardware-title">
-          <div className="section-heading">
-            <h2 id="hardware-title">A cloud with<br />a street address.</h2>
-            <p>The proposed cluster fits in a home. The machines have different jobs, based on how reliably they stay on.</p>
-          </div>
-          <figure className="cluster-photo">
-            <Image src="/images/cluster.png" alt="An illustrative home lab with five small computers stacked in open black frames" width={1752} height={897} sizes="100vw" />
-            <HardwareMap />
-            <figcaption>Five Pis. Two desktops. One personal cloud.<span>Hardware study</span></figcaption>
-          </figure>
-          <dl className="hardware-specs">
-            <div><dt>5 × Raspberry Pi 5</dt><dd>8GB each. The always-on foundation.</dd></div>
-            <div><dt>2 × desktops</dt><dd>One always on. One lends compute when free.</dd></div>
-            <div><dt>ARM64 + AMD64</dt><dd>One platform across two architectures.</dd></div>
-          </dl>
         </section>
 
         <section className="architecture frame section-space" aria-labelledby="architecture-title">

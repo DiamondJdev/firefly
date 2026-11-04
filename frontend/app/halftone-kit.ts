@@ -147,13 +147,6 @@ export function along(points: Point[], lens: number[], reach: number): Point[] {
   return out;
 }
 
-/** An axis-aligned block of city: streets every bw by bh pixels. */
-export function city(x: number, y: number, c: number, r: number, o: { bw: number; bh: number; sw: number; ox?: number; oy?: number }): Level {
-  const ox = o.ox ?? 0, oy = o.oy ?? 0;
-  if (wrap(x + ox, o.bw) < o.sw || wrap(y + oy, o.bh) < o.sw) return 0;
-  return tone(0.18 + 0.7 * fbm((x + ox) * 0.01 + 9, (y + oy) * 0.01), c, r);
-}
-
 /** A horizontal road: an asphalt gap through dithered shoulders, with scrolling centre dashes. */
 export function horizontalRoad(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, o: { mid: number; half: number; speed?: number; shoulder?: number }) {
   const { mid, half, speed = 30, shoulder = 22 } = o, dash = 17;

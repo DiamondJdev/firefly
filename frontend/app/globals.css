@@ -114,7 +114,7 @@ canvas { display: block; width: 100%; max-width: 100%; }
 @keyframes provision-land { from { transform: scale(.4); } }
 @keyframes route-flow { to { stroke-dashoffset: -16; } }
 @keyframes provision-work { 50% { opacity: .55; } }
-.capacity-figure figcaption { display: block; padding: 24px 0 0; max-width: 60ch; color: var(--quiet); }
+.capacity-figure figcaption { padding: 24px 0 0; max-width: 60ch; font-size: var(--small); color: var(--quiet); }
 .section-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 48px; margin-bottom: 48px; }
 .section-heading > p { width: 32%; max-width: 38ch; }
 .workflow-example { padding: 28px 32px 36px; background: var(--surface); }
@@ -152,14 +152,6 @@ code { font-family: inherit; }
 .capability-copy { font-size: var(--subhead); letter-spacing: -.025em; max-width: 37ch; }
 .capability-copy p + p { margin-top: 28px; }
 .text-link { display: inline-flex; align-items: center; justify-content: space-between; gap: 24px; font-size: var(--body); letter-spacing: 0; min-height: 44px; margin-top: 28px; }
-.cluster-photo { background: var(--surface); }
-.cluster-photo img { aspect-ratio: 2.25; object-fit: cover; }
-.address-strip { height: 150px; }
-figcaption { display: flex; justify-content: space-between; padding: 16px 24px; font-size: var(--small); gap: 24px; }
-figcaption span { color: var(--quiet); }
-.hardware-specs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px; margin-top: 32px; }
-.hardware-specs dt { font-size: var(--subhead); letter-spacing: -.025em; }
-.hardware-specs dd { margin-top: 6px; color: var(--quiet); font-size: var(--small); }
 .architecture-top { display: grid; grid-template-columns: 1fr 1fr; align-items: end; gap: 56px; margin-bottom: 48px; }
 .architecture-top p { max-width: 42ch; justify-self: end; }
 .stack-list { display: flex; flex-direction: column; gap: 8px; }
@@ -247,10 +239,6 @@ details > p { padding: 0 24px 28px; max-width: 62ch; }
   .junction canvas { height: 200px; min-height: 200px; }
   .junction .capability-copy p + p { margin-top: 28px; }
   .capability-copy { font-size: 22px; }
-  .cluster-photo img { aspect-ratio: 1.1; }
-  figcaption { display: block; padding: 16px; }
-  figcaption span { display: block; margin-top: 4px; }
-  .hardware-specs { grid-template-columns: 1fr; gap: 24px; margin-top: 28px; }
   .architecture-top { display: block; margin-bottom: 32px; }
   .architecture-top p { margin-top: 24px; }
   .stack-list > div { grid-template-columns: 1fr; gap: 8px; padding: 24px; }
