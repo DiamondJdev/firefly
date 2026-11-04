@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { LAND, ROUTE_DRAW, ROUTE_HOLD, classify, makeRoute, pan, routeTrail, type Point } from "./halftone-map";
+import { DRIVE, LAND, advanceDrive, classify, driveGoal, fromRoadGrid, pan, pathSlice, type Drive, type Point } from "./halftone-map";
 import { CELL, INK, bay, dots, field, rng, type Level } from "./halftone-kit";
 import { motion, useMotionPaused, useScene } from "./use-scene";
 
@@ -9,14 +9,12 @@ import { motion, useMotionPaused, useScene } from "./use-scene";
 // ahead of the route lights the streets at full brightness.
 const LIT: Level[] = [0, 0, 1, 2, 3];
 const STILL_TIME = 6;
-// A new route starts partly drawn so the first frame already shows one.
-const ROUTE_HEAD_START = ROUTE_DRAW * 0.7;
 
 export default function HeroArtwork() {
   const paused = useMotionPaused();
   const figureRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const drive = useRef({ random: rng(11), route: [] as Point[], start: -Infinity });
+  const drive = useRef({ random: rng(11), state: null as Drive | null });
 
   useScene(canvasRef, {
     animated: true,
@@ -26,14 +24,17 @@ export default function HeroArtwork() {
       return null;
     },
     draw(ctx, { w, h, t }) {
-      const d = drive.current;
-      if (t - d.start > ROUTE_DRAW + ROUTE_HOLD) {
-        d.route = makeRoute(d.random, w, h, t);
-        d.start = t - (d.start === -Infinity ? ROUTE_HEAD_START : 0);
-      }
+      const d = drive.current, travelled = t * DRIVE.speed;
       const [px, py] = pan(t);
-      const local = d.route.map(([x, y]): Point => [x - px, y - py]);
-      const { points, head } = routeTrail(local, (t - d.start) / ROUTE_DRAW, CELL);
+      // The car roams near a spot that slowly wanders over the land side of the view.
+      const { goal, reach } = driveGoal(w, h, t);
+      d.state = advanceDrive(d.state, d.random, { travelled, ahead: DRIVE.ahead, behind: DRIVE.trail, goal, reach });
+      const local = d.state.corners.map(([a, b]): Point => {
+        const [x, y] = fromRoadGrid(a, b);
+        return [x - px, y - py];
+      });
+      const at = travelled - d.state.base;
+      const { points, head } = pathSlice(local, at - DRIVE.trail, at, CELL);
 
       // The pool sits a little ahead of the car, along its heading.
       const behind = points[Math.max(0, points.length - 4)];

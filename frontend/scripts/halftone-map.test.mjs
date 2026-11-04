@@ -6,7 +6,7 @@ import ts from "typescript";
 const source = readFileSync(new URL("../app/halftone-map.ts", import.meta.url), "utf8");
 const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } });
 const map = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
-const { CELL, BLOCK_A, BLOCK_B, ROAD_OFFSET, LAND, classify, makeRoute, routeTrail, toRoadGrid } = map;
+const { CELL, DRIVE, BLOCK_A, BLOCK_B, ROAD_OFFSET, LAND, advanceDrive, classify, driveGoal, fromRoadGrid, pan, pathSlice, routeTrail } = map;
 
 function seeded(seed) {
   return () => {
@@ -36,27 +36,55 @@ test("panning moves the streets but keeps the coast in frame", () => {
   assert.ok(changed > start.length * 0.1, "map should move");
 });
 
-test("routes start in view and follow the street grid", () => {
+const onGrid = ([a, b]) => {
+  const offA = ((a - ROAD_OFFSET) % BLOCK_A + BLOCK_A) % BLOCK_A, offB = ((b - ROAD_OFFSET) % BLOCK_B + BLOCK_B) % BLOCK_B;
+  return Math.min(offA, BLOCK_A - offA) < 1e-6 && Math.min(offB, BLOCK_B - offB) < 1e-6;
+};
+
+test("the drive keeps going on the street grid and stays near its goal", () => {
   for (const seed of [1, 2, 3, 4, 5]) {
-    const route = makeRoute(seeded(seed), W, H, 12);
-    assert.ok(route.length >= 4);
-    const [first] = routeTrail(route, 0, CELL).points;
-    const [px, py] = map.pan(12);
-    assert.ok(first[0] - px >= 0 && first[0] - px <= W && first[1] - py >= 0 && first[1] - py <= H);
-    for (let i = 0; i < route.length; i++) {
-      const [a, b] = toRoadGrid(route[i][0], route[i][1]);
-      const offA = ((a - ROAD_OFFSET) % BLOCK_A + BLOCK_A) % BLOCK_A, offB = ((b - ROAD_OFFSET) % BLOCK_B + BLOCK_B) % BLOCK_B;
-      assert.ok(Math.min(offA, BLOCK_A - offA) < 1e-6 && Math.min(offB, BLOCK_B - offB) < 1e-6, `corner ${i} off grid`);
-      if (i === 0) continue;
-      const [pa, pb] = toRoadGrid(route[i - 1][0], route[i - 1][1]);
-      const movedA = Math.abs(a - pa) > 1e-6, movedB = Math.abs(b - pb) > 1e-6;
-      assert.ok(movedA !== movedB, `leg ${i} must follow one street`);
+    const random = seeded(seed), goal = [W * 0.66, H * 0.5];
+    let drive = null;
+    for (let travelled = 0; travelled < 20000; travelled += 3) {
+      drive = advanceDrive(drive, random, { travelled, ahead: 240, behind: 380, goal, reach: 120 });
+      const { corners, base } = drive;
+      const length = corners.slice(1).reduce((s, p, i) => s + Math.abs(p[0] - corners[i][0]) + Math.abs(p[1] - corners[i][1]), 0);
+      assert.ok(base + length >= travelled + 240, "streets ahead of the car");
+      assert.ok(corners.length < 40, "old corners are dropped");
+      const at = travelled - base;
+      assert.ok(at >= 380 - 1e-6, "a full trail sits behind the car");
+      const head = pathSlice(corners.map(([a, b]) => fromRoadGrid(a, b)), at - 380, at, CELL).head;
+      assert.ok(Math.hypot(head[0] - goal[0], head[1] - goal[1]) < 300, `car wandered off at ${travelled}`);
+    }
+    const { corners } = drive;
+    corners.forEach((p, i) => {
+      assert.ok(onGrid(p), `corner ${i} off grid`);
+      if (i) assert.ok((p[0] !== corners[i - 1][0]) !== (p[1] !== corners[i - 1][1]), `leg ${i} must follow one street`);
+    });
+  }
+});
+
+test("on any screen size the car and its trail stay in view", () => {
+  for (const [w, h] of [[320, 280], [375, 320], [573, 850], [900, 700]]) {
+    for (const seed of [1, 2, 3]) {
+      const random = seeded(seed);
+      let drive = null;
+      for (let t = 0; t < 300; t += 1 / 30) {
+        const { goal, reach } = driveGoal(w, h, t);
+        const travelled = t * DRIVE.speed;
+        drive = advanceDrive(drive, random, { travelled, ahead: DRIVE.ahead, behind: DRIVE.trail, goal, reach });
+        const [px, py] = pan(t), at = travelled - drive.base;
+        const local = drive.corners.map(([a, b]) => { const [x, y] = fromRoadGrid(a, b); return [x - px, y - py]; });
+        for (const [x, y] of pathSlice(local, at - DRIVE.trail, at, CELL).points) {
+          assert.ok(x >= 0 && x <= w && y >= 0 && y <= h, `${w}x${h} seed ${seed}: off screen at t=${t.toFixed(1)} (${x.toFixed(0)}, ${y.toFixed(0)})`);
+        }
+      }
     }
   }
 });
 
 test("a trail grows from the first corner to the last", () => {
-  const route = makeRoute(seeded(9), W, H, 0);
+  const route = [[0, 0], [100, 0], [100, 60], [30, 60]];
   const empty = routeTrail(route, 0, CELL), full = routeTrail(route, 1, CELL), half = routeTrail(route, 0.5, CELL);
   assert.deepEqual(empty.head, route[0]);
   const last = route[route.length - 1];
@@ -66,4 +94,7 @@ test("a trail grows from the first corner to the last", () => {
     const [x0, y0] = full.points[i - 1], [x1, y1] = full.points[i];
     assert.ok(Math.hypot(x1 - x0, y1 - y0) <= CELL + 1e-6);
   }
+  const window = pathSlice(route, 50, 150, CELL);
+  assert.deepEqual(window.points[0], [50, 0]);
+  assert.deepEqual(window.head, [100, 50]);
 });

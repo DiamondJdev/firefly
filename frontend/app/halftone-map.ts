@@ -6,8 +6,6 @@ export const CELL = 5;
 export const BLOCK_A = 46;
 export const BLOCK_B = 38;
 export const ROAD_OFFSET = 3;
-export const ROUTE_DRAW = 4;
-export const ROUTE_HOLD = 2.2;
 const PAN_SPEED = 9;
 
 export const LAND = { water: 0, blank: 1, light: 2, dense: 3, shore: 4 } as const;
@@ -37,7 +35,7 @@ export const fbm = (x: number, y: number) =>
 
 export const pan = (t: number): Point => [T[0] * t * PAN_SPEED, T[1] * t * PAN_SPEED];
 export const toRoadGrid = (x: number, y: number): Point => [x * T[0] + y * T[1], x * N[0] + y * N[1]];
-const fromRoadGrid = (a: number, b: number): Point => [T[0] * a + N[0] * b, T[1] * a + N[1] * b];
+export const fromRoadGrid = (a: number, b: number): Point => [T[0] * a + N[0] * b, T[1] * a + N[1] * b];
 const wrap = (v: number, size: number) => ((v % size) + size) % size;
 
 /** One LAND code per CELL-sized cell, row-major, for a w × h view at time t. */
@@ -70,34 +68,83 @@ export function classify(w: number, h: number, t: number): Uint8Array {
   return cells;
 }
 
-/** A route in world coordinates: starts in the upper right of the view, then alternates streets. */
-export function makeRoute(random: () => number, w: number, h: number, t: number): Point[] {
+/** An endless drive. Corners are in road-grid coordinates; `base` is the distance already dropped behind. */
+export type Drive = { corners: Point[]; base: number };
+
+const legLength = (p: Point, q: Point) => Math.abs(q[0] - p[0]) + Math.abs(q[1] - p[1]);
+const snap = (v: number, block: number) => Math.round(v / block) * block + ROAD_OFFSET;
+
+// A point within `reach` of the goal on both street axes sits at most this far from it on screen.
+const REACH_TO_SCREEN = Math.max(Math.abs(N[0]) + Math.abs(T[0]), Math.abs(N[1]) + Math.abs(T[1]));
+const EDGE_MARGIN = 12;
+/** The hero car: pixels per second, trail kept behind it, and streets laid ahead of it. */
+export const DRIVE = { speed: 55, trail: 260, ahead: 160 };
+// Streets are laid this many seconds before they leave the trail, and the map pans meanwhile,
+// so they drift on screen along -T (up and to the right) by up to this much.
+const DRIFT = ((DRIVE.trail + DRIVE.ahead) / DRIVE.speed) * PAN_SPEED;
+
+/** Where the car roams on a w × h view at time t, and how far it may wander, so it never leaves the view. */
+export function driveGoal(w: number, h: number, t: number): { goal: Point; reach: number } {
+  const reach = Math.max(BLOCK_A / 2, Math.min(w, h) * 0.24);
+  const span = reach * REACH_TO_SCREEN + EDGE_MARGIN;
+  // The land side of the coast, above the fold on tall views, with room for the drift.
+  const x = (Math.max(w * 0.45, span) + w - span + T[0] * DRIFT) / 2;
+  const y = (span + T[1] * DRIFT + Math.min(h - span, h * 0.6)) / 2;
   const [px, py] = pan(t);
-  let [a, b] = toRoadGrid(w * (0.62 + random() * 0.25) + px, h * (0.08 + random() * 0.2) + py);
-  a = Math.round(a / BLOCK_A) * BLOCK_A + ROAD_OFFSET;
-  b = Math.round(b / BLOCK_B) * BLOCK_B + ROAD_OFFSET;
-  const corners: Point[] = [[a, b]];
-  for (let i = 0; i < 6; i++) {
-    if (i % 2 === 0) a += BLOCK_A * (1 + Math.floor(random() * 3));
-    else b += BLOCK_B * (random() < 0.3 ? -1 : 1) * (1 + Math.floor(random() * 2));
-    corners.push([a, b]);
+  return { goal: [x + px, y + py], reach };
+}
+
+type DriveStep = { travelled: number; ahead: number; behind: number; goal: Point; reach: number };
+
+/**
+ * Keep the drive's streets at least `ahead` past `travelled`, staying within `reach` of `goal`
+ * (world coordinates) on both street axes, and drop corners more than `behind` back. Returns a new drive.
+ */
+export function advanceDrive(drive: Drive | null, random: () => number, { travelled, ahead, behind, goal, reach }: DriveStep): Drive {
+  const [ga, gb] = toRoadGrid(goal[0], goal[1]);
+  let corners = drive?.corners ?? [[snap(ga, BLOCK_A), snap(gb, BLOCK_B)] as Point];
+  // A new drive starts with a full trail already behind the car.
+  let base = drive?.base ?? travelled - behind;
+  let length = corners.slice(1).reduce((sum, p, i) => sum + legLength(corners[i], p), 0);
+  while (base + length < travelled + ahead) {
+    const last = corners[corners.length - 1], prev = corners[corners.length - 2];
+    // Alternate streets: after a leg along a, the next runs along b.
+    const axis = prev && prev[0] !== last[0] ? 1 : 0;
+    const block = axis === 0 ? BLOCK_A : BLOCK_B, from = last[axis] - (axis === 0 ? ga : gb);
+    const blocks = 1 + Math.floor(random() * 2), sign = random() < 0.5 ? -1 : 1;
+    // Random turn, but never past `reach`; if both ways are too far, one block back toward the goal.
+    const options = [sign * blocks, -sign * blocks].filter(n => Math.abs(from + n * block) <= reach);
+    const step = (options[0] ?? (from > 0 ? -1 : 1)) * block;
+    const next: Point = axis === 0 ? [last[0] + step, last[1]] : [last[0], last[1] + step];
+    corners = [...corners, next];
+    length += Math.abs(step);
   }
-  return corners.map(([ca, cb]) => fromRoadGrid(ca, cb));
+  while (corners.length > 2 && base + legLength(corners[0], corners[1]) < travelled - behind) {
+    base += legLength(corners[0], corners[1]);
+    corners = corners.slice(1);
+  }
+  return { corners, base };
+}
+
+/** Points along the route between distances `from` and `to`, at most `step` apart, ending at the head. */
+export function pathSlice(route: Point[], from: number, to: number, step: number) {
+  const points: Point[] = [];
+  let head: Point = route[0], walked = 0;
+  for (let i = 0; i < route.length - 1; i++) {
+    const [x0, y0] = route[i], [x1, y1] = route[i + 1], len = Math.hypot(x1 - x0, y1 - y0);
+    const start = Math.max(from, walked) - walked, end = Math.min(to, walked + len) - walked;
+    walked += len;
+    if (end <= start || len === 0) continue;
+    const at = (d: number): Point => [x0 + ((x1 - x0) * d) / len, y0 + ((y1 - y0) * d) / len];
+    for (let d = points.length && start === 0 ? step : start; d < end; d += step) points.push(at(d));
+    head = at(end);
+    points.push(head);
+  }
+  return { points: points.length ? points : [route[0]], head };
 }
 
 /** Points along the route up to `progress` (0 to 1), at most `step` apart, ending at the head. */
 export function routeTrail(route: Point[], progress: number, step: number) {
-  const lengths = route.slice(1).map((p, i) => Math.hypot(p[0] - route[i][0], p[1] - route[i][1]));
-  let left = Math.min(1, Math.max(0, progress)) * lengths.reduce((sum, l) => sum + l, 0);
-  const points: Point[] = [route[0]];
-  let head: Point = route[0];
-  for (let i = 0; i < lengths.length && left > 0; i++) {
-    const [x0, y0] = route[i], [x1, y1] = route[i + 1], run = Math.min(left, lengths[i]);
-    const at = (d: number): Point => [x0 + ((x1 - x0) * d) / lengths[i], y0 + ((y1 - y0) * d) / lengths[i]];
-    for (let d = step; d < run; d += step) points.push(at(d));
-    head = at(run);
-    points.push(head);
-    left -= run;
-  }
-  return { points, head };
+  const total = route.slice(1).reduce((sum, p, i) => sum + Math.hypot(p[0] - route[i][0], p[1] - route[i][1]), 0);
+  return pathSlice(route, 0, Math.min(1, Math.max(0, progress)) * total, step);
 }
