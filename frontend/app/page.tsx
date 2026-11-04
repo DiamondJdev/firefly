@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Workflow from "./workflow";
 import HeroArtwork from "./hero-artwork";
+import { AboutRoute, CapabilityJunction, ExplodedStack, HardwareMap, IntentMap, InvitationRoute, KerbRoad, Pipeline, RampedQuestions } from "./road-scenes";
 
 const questions = [
   ["Can I deploy something today?", "Firefly is in development and currently intended for my own projects. Public access is planned for people who find it through my portfolio, after the deployment path and operating limits are proven."],
@@ -8,6 +9,21 @@ const questions = [
   ["Why build a personal PaaS?", "To learn by operating the whole system: a Kubernetes controller in Rust, multi-architecture builds, and machines configured with NixOS. Hosting my own projects gives that learning a practical job."],
   ["Is this for production workloads?", "This is a home-hosted learning project. There is no availability guarantee or public service offering. Keep critical workloads on infrastructure with the support and recovery guarantees they need."],
   ["Will there be paid plans?", "There is no public pricing or billing today. Resource tiers are part of the design, but outside users and billing are later decisions."],
+];
+
+const stages: [string, string][] = [
+  ["Source", "A push, a Dockerfile, or the pi CLI."],
+  ["Build", "BuildKit prepares images for ARM and x86."],
+  ["Reconcile", "A Rust operator turns intent into containers."],
+  ["Serve", "Traefik routes requests through Cloudflare."],
+];
+
+const layers: [string, string, string][] = [
+  ["NixOS", "The same declared system, rebuilt on every node.", "Machines"],
+  ["k3s", "A small Kubernetes distribution to schedule the work.", "Orchestration"],
+  ["Rust + kube-rs", "An operator to reconcile the app you asked for.", "Control"],
+  ["BuildKit + Zot", "Build images and keep them inside the network.", "Delivery"],
+  ["Cloudflare Tunnel", "A public route without opening inbound ports at home.", "Ingress"],
 ];
 
 export default function Home() {
@@ -30,13 +46,16 @@ export default function Home() {
             <h1 id="hero-title">A home for<br />what you build.</h1>
             <p className="hero-description">A personal PaaS, built to learn and host small projects on hardware I own.</p>
             <a className="button primary" href="#workflow">Explore the build <span aria-hidden="true">↗</span></a>
-            <p className="hero-footnote">Built at home. Being built in public.</p>
+            <p className="hero-footnote">Invite only access for now</p>
           </div>
           <HeroArtwork />
         </section>
 
         <section className="intent frame section-space" aria-labelledby="intent-title">
-          <h2 id="intent-title" className="small-heading">Small by intention</h2>
+          <div>
+            <h2 id="intent-title" className="small-heading">Small by intention</h2>
+            <IntentMap />
+          </div>
           <div>
             <p className="statement">Some projects just need a place to live. Firefly is my way of building that place, and understanding everything underneath it.</p>
             <p className="intent-detail">Personal projects first. A few curious builders later.</p>
@@ -49,26 +68,18 @@ export default function Home() {
             <p>The goal is a short path from your project to an HTTPS URL. These are the workflows I am building toward.</p>
           </div>
           <Workflow />
-          <ol className="pipeline" aria-label="Planned deployment pipeline">
-            <li><strong>Source</strong><p>A push, a Dockerfile, or the pi CLI.</p></li>
-            <li><strong>Build</strong><p>BuildKit prepares images for ARM and x86.</p></li>
-            <li><strong>Reconcile</strong><p>A Rust operator turns intent into containers.</p></li>
-            <li><strong>Serve</strong><p>Traefik routes requests through Cloudflare.</p></li>
-          </ol>
+          <Pipeline stages={stages} />
         </section>
 
         <section id="capabilities" className="capabilities frame section-space" aria-labelledby="capabilities-title">
           <h2 id="capabilities-title">The useful parts.</h2>
-          <div className="capability-content">
+          <CapabilityJunction>
             <div className="capability-copy">
               <p>The plan includes an HTTPS address for every app, isolated project namespaces, and preview environments for pull requests.</p>
               <p>Persistent volumes keep project data on always-on machines. Logs and per-app metrics help explain what is happening.</p>
               <a className="text-link" href="/blueprint.txt">See the deployment design <span aria-hidden="true">↗</span></a>
             </div>
-            <figure className="wing-art">
-              <Image src="/images/wing.png" alt="An enlarged firefly wing with its delicate structure traced in ASCII characters" width={1536} height={1024} sizes="(max-width: 680px) 100vw, 45vw" />
-            </figure>
-          </div>
+          </CapabilityJunction>
         </section>
 
         <section id="hardware" className="hardware frame section-space" aria-labelledby="hardware-title">
@@ -78,6 +89,7 @@ export default function Home() {
           </div>
           <figure className="cluster-photo">
             <Image src="/images/cluster.png" alt="An illustrative home lab with five small computers stacked in open black frames" width={1752} height={897} sizes="100vw" />
+            <HardwareMap />
             <figcaption>Five Pis. Two desktops. One personal cloud.<span>Hardware study</span></figcaption>
           </figure>
           <dl className="hardware-specs">
@@ -92,18 +104,12 @@ export default function Home() {
             <h2 id="architecture-title">Nothing hidden<br />under the hood.</h2>
             <p>Each layer has a job. The blueprint records the choices, including the ones that still need to prove themselves.</p>
           </div>
-          <dl className="stack-list">
-            <div><dt>NixOS</dt><dd>The same declared system, rebuilt on every node.</dd><span>Machines</span></div>
-            <div><dt>k3s</dt><dd>A small Kubernetes distribution to schedule the work.</dd><span>Orchestration</span></div>
-            <div><dt>Rust + kube-rs</dt><dd>An operator to reconcile the app you asked for.</dd><span>Control</span></div>
-            <div><dt>BuildKit + Zot</dt><dd>Build images and keep them inside the network.</dd><span>Delivery</span></div>
-            <div><dt>Cloudflare Tunnel</dt><dd>A public route without opening inbound ports at home.</dd><span>Ingress</span></div>
-          </dl>
+          <ExplodedStack layers={layers} />
         </section>
 
         <section id="about" className="about frame section-space" aria-labelledby="about-title">
           <div className="about-panel">
-            <Image src="/images/board.png" alt="Illustrative close-up of a single-board computer and its black heatsink on a workbench" width={1448} height={1086} sizes="(max-width: 680px) 100vw, 40vw" />
+            <AboutRoute />
             <div className="about-letter">
               <h2 id="about-title">Built for the<br />learning part.</h2>
               <p>I wanted a place to host my projects. Building the platform became a project of its own.</p>
@@ -116,21 +122,15 @@ export default function Home() {
 
         <section id="questions" className="questions frame section-space" aria-labelledby="questions-title">
           <h2 id="questions-title">Fair questions.</h2>
-          <div className="faq-list">
-            {questions.map(([question, answer]) => (
-              <details key={question}>
-                <summary>{question}<span className="disclosure-symbol" aria-hidden="true">+</span></summary>
-                <p>{answer}</p>
-              </details>
-            ))}
-          </div>
+          <RampedQuestions questions={questions} />
         </section>
 
         <section className="invitation frame section-space" aria-labelledby="invitation-title">
+          <InvitationRoute />
           <h2 id="invitation-title">Come see<br />how it is built.</h2>
           <div className="invitation-action">
             <p>The architecture, the constraints, and the things still being figured out.</p>
-            <a className="button primary" href="/blueprint.txt">Read the blueprint <span aria-hidden="true">↗</span></a>
+            <a className="button primary" href="/blueprint.txt" data-destination>Read the blueprint <span aria-hidden="true">↗</span></a>
           </div>
         </section>
       </main>
@@ -138,6 +138,7 @@ export default function Home() {
       <footer className="site-footer frame">
         <div className="footer-meta"><p>Phoenix Firefly</p><a href="#hero-title">Back to top <span aria-hidden="true">↑</span></a></div>
         <p className="footer-wordmark" aria-hidden="true">firefly*</p>
+        <KerbRoad />
         <div className="footer-meta"><p>A personal cloud. A work in progress.</p><p>Hero map drawn in code. Additional studies created with ImageGen.</p></div>
       </footer>
     </>
