@@ -118,7 +118,7 @@ export default function Home() {
         <div className="footer-meta"><p>Phoenix Firefly</p><a href="#hero-title">Back to top <span aria-hidden="true">↑</span></a></div>
         <p className="footer-wordmark" aria-hidden="true">firefly*</p>
         <KerbRoad />
-        <div className="footer-meta"><p>A personal cloud. A work in progress.</p><p>Hero map drawn in code. Additional studies created with ImageGen.</p></div>
+        <div className="footer-meta"><p>A personal cloud. A work in progress.</p><p>Every map and diagram is drawn in code.</p></div>
       </footer>
     </>
   );
