@@ -46,7 +46,6 @@ img { display: block; width: 100%; height: auto; }
 canvas { display: block; width: 100%; max-width: 100%; }
 .frame { padding-inline: var(--gutter); width: 100%; max-width: 1728px; margin-inline: auto; }
 .section-space { margin-top: clamp(112px, 11vw, 168px); }
-.small-heading { font-size: var(--body); font-weight: 450; letter-spacing: 0; line-height: 1.55; }
 .caption { font-size: var(--small); color: var(--quiet); }
 .skip-link { position: fixed; z-index: 10; top: 12px; left: 20px; padding: 12px 18px; background: var(--accent); color: var(--on-accent); transform: translateY(-150%); }
 .skip-link:focus { transform: translateY(0); }
@@ -71,9 +70,51 @@ canvas { display: block; width: 100%; max-width: 100%; }
 .hero-motion-control { position: absolute; bottom: 20px; right: var(--gutter); z-index: 2; min-height: 44px; padding: 10px 0 10px 16px; border: 0; background: var(--ground); color: var(--quiet); font: var(--small)/1.5 var(--font); }
 .hero-motion-control:hover { color: var(--ink); }
 .hero-map:not([data-rendered="true"]) + .hero-motion-control { display: none; }
-.intent { display: grid; grid-template-columns: 1fr 2fr; gap: 36px; margin-top: 64px; }
-.statement { font-size: var(--subhead); line-height: 1.45; letter-spacing: -.025em; max-width: 47ch; }
-.intent-detail { margin-top: 28px; color: var(--quiet); }
+.intent { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 500px); grid-template-rows: auto 1fr; grid-template-areas: "copy figure" "panel figure"; gap: 48px clamp(48px, 8vw, 144px); align-items: start; margin-top: 64px; }
+.intent .capacity-figure { grid-area: figure; }
+.intent-copy { grid-area: copy; }
+.provision-panel { grid-area: panel; }
+.statement { font-size: var(--subhead); line-height: 1.45; letter-spacing: -.025em; max-width: 40ch; margin-top: 36px; }
+.intent-detail { margin-top: 20px; color: var(--quiet); }
+.provision-steps { list-style: none; margin: 0 0 32px; padding: 0; display: grid; gap: 14px; }
+.provision-steps li { display: grid; grid-template-columns: 26px 1fr; align-items: center; font-size: var(--subhead); letter-spacing: -.025em; line-height: 1.3; color: var(--quiet); transition: color 240ms ease; }
+.provision-steps li::before { content: ""; width: 12px; height: 12px; background: var(--raised); transition: background-color 240ms ease; }
+.provision-steps li[aria-current="step"] { color: var(--ink); }
+.provision-steps li[aria-current="step"]::before { background: var(--accent); }
+.provision-deploy { min-height: 52px; padding: 14px 22px; border: 0; border-radius: 0; background: var(--raised); color: var(--ink); font-size: var(--small); font-weight: 550; transition: transform 160ms ease, background-color 160ms ease, color 160ms ease; }
+.provision-deploy:hover { background: var(--accent); color: var(--on-accent); transform: translateY(-2px); }
+.provision-deploy:active { transform: translateY(1px); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.provision-field { position: relative; }
+.scheduler { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr auto; gap: 14px 24px; align-items: baseline; padding: 20px; background: var(--surface); }
+.scheduler-name { font-size: var(--subhead); letter-spacing: -.025em; }
+.scheduler-status { font-size: var(--small); color: var(--quiet); text-align: right; }
+[data-stage="schedule"] .scheduler-status { color: var(--accent); }
+.scheduler-app { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; color: var(--quiet); }
+.app-chip { width: 14px; height: 14px; flex: none; background: var(--raised); transition: background-color 240ms ease; }
+[data-stage="schedule"] .scheduler-app { color: var(--ink); }
+[data-stage="schedule"] .app-chip { background: var(--accent); animation: provision-arrive 420ms cubic-bezier(.2, .8, .2, 1); }
+.provision-routes { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.route { fill: none; stroke: color-mix(in srgb, var(--accent) 30%, var(--ground)); stroke-width: 2; stroke-dasharray: 3 5; }
+.route.on { stroke: var(--accent); stroke-width: 3; }
+[data-stage="schedule"] .route.on { animation: route-flow 480ms linear infinite; }
+.route-head.off { fill: color-mix(in srgb, var(--accent) 30%, var(--ground)); }
+.route-head.on { fill: var(--accent); }
+.provision-packet { position: absolute; top: 0; left: 0; width: 14px; height: 14px; background: var(--accent); offset-rotate: 0deg; animation: provision-send 900ms cubic-bezier(.5, 0, .3, 1) 300ms both; }
+.capacity-field { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 60px 44px; margin-top: 52px; }
+.capacity-pi { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.capacity-pi span { aspect-ratio: 1; background: var(--raised); transition: background-color 260ms ease, transform 260ms ease; }
+.capacity-node p { margin-top: 10px; font-size: var(--small); color: var(--quiet); transition: color 240ms ease; }
+.capacity-node[data-chosen] p { color: var(--ink); }
+.capacity-pi [data-state="run"] { background: color-mix(in srgb, var(--accent) 34%, var(--ground)); }
+.capacity-pi [data-state="provision"] { background: var(--accent); animation: provision-land 320ms cubic-bezier(.2, .8, .2, 1); }
+.capacity-pi [data-state="work"] { background: var(--accent); animation: provision-work 1.6s ease-in-out infinite; }
+@keyframes provision-arrive { from { transform: translateX(-16px); opacity: 0; } }
+@keyframes provision-send { from { offset-distance: 0%; } to { offset-distance: 100%; opacity: .2; } }
+@keyframes provision-land { from { transform: scale(.4); } }
+@keyframes route-flow { to { stroke-dashoffset: -16; } }
+@keyframes provision-work { 50% { opacity: .55; } }
+.capacity-figure figcaption { display: block; padding: 24px 0 0; max-width: 60ch; color: var(--quiet); }
 .section-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 48px; margin-bottom: 48px; }
 .section-heading > p { width: 32%; max-width: 38ch; }
 .workflow-example { padding: 28px 32px 36px; background: var(--surface); }
@@ -105,7 +146,6 @@ code { font-family: inherit; }
 .pipeline li.is-passing strong { color: var(--accent); }
 .pipeline strong { font-size: var(--subhead); font-weight: 450; letter-spacing: -.03em; transition: color 240ms ease; }
 .pipeline p { margin-top: 16px; font-size: var(--small); color: var(--quiet); }
-.address-map { margin-top: 28px; height: 220px; max-width: 360px; }
 .junction { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 56px; margin-top: 16px; }
 .junction canvas { height: 100%; min-height: 360px; }
 .junction .capability-copy p + p { margin-top: 64px; }
@@ -171,6 +211,8 @@ details > p { padding: 0 24px 28px; max-width: 62ch; }
   .stack-list > div { grid-template-columns: 1fr 1.6fr; }
   .stack-list span { display: none; }
   .architecture-top { gap: 32px; }
+  .intent { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 40px; }
+  .capacity-field { column-gap: 28px; }
 }
 
 @media (max-width: 680px) {
@@ -185,9 +227,14 @@ details > p { padding: 0 24px 28px; max-width: 62ch; }
   .hero-footnote { margin-top: 18px; }
   .hero-map { top: auto; left: 0; height: 320px; }
   .section-space { margin-top: 104px; }
-  .intent { grid-template-columns: 1fr; gap: 24px; margin-top: 64px; }
-  .statement { font-size: var(--subhead); }
-  .intent-detail { margin-top: 24px; font-size: var(--small); }
+  .intent { grid-template-columns: 1fr; grid-template-areas: "copy" "panel" "figure"; gap: 40px; margin-top: 64px; }
+  .statement { margin-top: 24px; }
+  .intent-detail { margin-top: 16px; font-size: var(--small); }
+  .provision-steps li { font-size: 20px; }
+  .capacity-field { gap: 48px 24px; margin-top: 48px; }
+  .scheduler { padding: 16px; }
+  .capacity-pi { gap: 4px; }
+  .capacity-figure figcaption { padding: 16px 0 0; }
   .section-heading { display: block; margin-bottom: 32px; }
   .section-heading > p { width: 100%; margin-top: 24px; }
   .workflow-example { padding: 20px; }

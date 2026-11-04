@@ -10,32 +10,6 @@ import { enterProgress, makeLayer, useScene } from "./use-scene";
 type Lot = { x0: number; x1: number; y0: number; y1: number };
 const inLot = (x: number, y: number, l: Lot) => x >= l.x0 && x < l.x1 && y >= l.y0 && y < l.y1;
 
-/** Small by intention: four blocks and one lot. A short route turns into it and the lot fills in. */
-export function IntentMap() {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useScene(ref, {
-    animated: true,
-    setup(_, frame) {
-      const grid = { bw: 58, bh: 50, sw: 8, ox: 4, oy: 6 };
-      const lot: Lot = { x0: 2 * 58 - 4 + 8, x1: 3 * 58 - 4, y0: 2 * 50 - 6 + 8, y1: 3 * 50 - 6 };
-      const base = makeLayer(frame, ctx => field(ctx, frame.w, frame.h, (x, y, c, r) => {
-        if (inLot(x, y, lot)) return 0;
-        return city(x, y, c, r, grid) ? (bay(c, r) < 0.55 ? 5 : 1) : 0;
-      }));
-      const street = 2 * 50 - 6 + 3, mid = (lot.x0 + lot.x1) / 2;
-      return { base, lot, route: [[0, street], [mid, street], [mid, street + 22]] as Point[] };
-    },
-    draw(ctx, { w, h, t, still }, s) {
-      ctx.drawImage(s.base, 0, 0, w, h);
-      const { p, arrived, m } = cycle(t, 2.6, 3.4);
-      const fill = still ? 1 : arrived ? clamp((m - 2.6) / 0.6) : 0;
-      if (fill > 0) field(ctx, w, h, (x, y, c, r) => (inLot(x, y, s.lot) && bay(c, r) < 0.75 * fill ? 4 : 0));
-      drawRoute(ctx, s.route, still ? 1 : p);
-    },
-  });
-  return <canvas ref={ref} className="address-map" aria-hidden="true" />;
-}
-
 /** The pipeline band with a road along its top edge. A car drives Source to Serve and lights each stage. */
 export function Pipeline({ stages }: { stages: [string, string][] }) {
   const ref = useRef<HTMLCanvasElement>(null);

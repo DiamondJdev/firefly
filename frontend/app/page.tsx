@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Workflow from "./workflow";
 import HeroArtwork from "./hero-artwork";
-import { AboutRoute, CapabilityJunction, ExplodedStack, HardwareMap, IntentMap, InvitationRoute, KerbRoad, Pipeline, RampedQuestions } from "./road-scenes";
+import IntentCapacity from "./intent-capacity";
+import { AboutRoute, CapabilityJunction, ExplodedStack, HardwareMap, InvitationRoute, KerbRoad, Pipeline, RampedQuestions } from "./road-scenes";
 
 const questions = [
   ["Can I deploy something today?", "Firefly is in development and currently intended for my own projects. Public access is planned for people who find it through my portfolio, after the deployment path and operating limits are proven."],
@@ -52,14 +53,11 @@ export default function Home() {
         </section>
 
         <section className="intent frame section-space" aria-labelledby="intent-title">
-          <div>
-            <h2 id="intent-title" className="small-heading">Small by intention</h2>
-            <IntentMap />
-          </div>
-          <div>
+          <div className="intent-copy">
+            <h2 id="intent-title">Small by<br />intention.</h2>
             <p className="statement">Some projects just need a place to live. Firefly is my way of building that place, and understanding everything underneath it.</p>
-            <p className="intent-detail">Personal projects first. A few curious builders later.</p>
           </div>
+          <IntentCapacity />
         </section>
 
         <section id="workflow" className="workflow frame section-space" aria-labelledby="workflow-title">
