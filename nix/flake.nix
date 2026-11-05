@@ -12,16 +12,36 @@
   # Keep nixos-raspberrypi's own nixpkgs pin: overriding it misses the binary cache.
   # flake.lock pins that nixpkgs, which pins the k3s version.
   inputs.nixos-raspberrypi.url = "github:nvmd/nixos-raspberrypi/main";
+  inputs.sops-nix = {
+    url = "github:Mic92/sops-nix";
+    inputs.nixpkgs.follows = "nixos-raspberrypi/nixpkgs";
+  };
 
   outputs =
-    { nixos-raspberrypi, ... }:
+    { nixos-raspberrypi, sops-nix, ... }:
     {
-      # Build the SD image with `path:` so the gitignored wifi.nix is included:
-      #   nix build "path:./nix#nixosConfigurations.firefly-pi.config.system.build.sdImage"
+      packages.aarch64-linux.image-tools =
+        let
+          pkgs = nixos-raspberrypi.inputs.nixpkgs.legacyPackages.aarch64-linux;
+        in
+        pkgs.buildEnv {
+          name = "firefly-image-tools";
+          paths = with pkgs; [
+            python3
+            e2fsprogs
+            util-linux
+            zstd
+            sops
+            age
+          ];
+        };
+
+      # nix build ./nix#nixosConfigurations.firefly-pi.config.system.build.sdImage
       nixosConfigurations.firefly-pi = nixos-raspberrypi.lib.nixosSystem {
         modules = [
           nixos-raspberrypi.nixosModules.raspberry-pi-5.base
           nixos-raspberrypi.nixosModules.sd-image
+          sops-nix.nixosModules.sops
           ./pi.nix
         ];
       };
