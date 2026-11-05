@@ -1,3 +1,6 @@
 .env
 .taste-skill
 .claude
+nix/wifi.nix
+result
+nix/*.img.zst
