@@ -26,7 +26,7 @@ Keep the `wireless_env` value in the form `psk_home=<password>`. The Pi decrypts
 
 Run `nix/deploy.sh` from the Mac to copy tracked Nix files and switch the Pi. Stage new Nix files first. The rebuild runs as a systemd service, and the script reconnects after Wi-Fi interruptions to read its exit status. It waits up to 30 minutes and prints the unit name if it times out; the rebuild can still be running.
 
-Use Ethernet for the first secret migration. After verifying Wi-Fi, retire old Nix generations, the old SD image and the old `firefly-nix` container from the implementation plan. Those older copies still contain the plaintext credential. The script does not delete them or stale remote files such as `~/nix/wifi.nix`.
+Use Ethernet for the first secret migration. Each deploy extracts tracked files into a clean directory and moves the previous remote directory to `~/nix.previous-firefly-switch-*`. This keeps stale files such as `wifi.nix` out of new flake snapshots without deleting unknown files. After verifying Wi-Fi, retire those remote backups, old Nix generations, the old SD image and the old `firefly-nix` container. Those older copies still contain the plaintext credential; the script does not delete them.
 
 A freshly flashed card needs Ethernet until its new SSH host key is added as a recipient. Convert the authenticated host public key with `ssh-to-age`, update `&firefly-pi` in `nix/.sops.yaml`, then run `sops --config nix/.sops.yaml updatekeys nix/secrets.yaml` from the repo root and redeploy.
 

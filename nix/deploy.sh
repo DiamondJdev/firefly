@@ -4,10 +4,10 @@ cd "$(dirname "$0")/.."
 
 remote=firefly-pi.local
 ssh_options=(-o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=5 -o ServerAliveCountMax=3)
-git ls-files -z nix | tar -c --null -T - | ssh "${ssh_options[@]}" "$remote" \
-  'mkdir -p ~/nix && tar -x --strip-components=1 -C ~/nix'
-
 unit="firefly-switch-$(date +%s)-$$"
+git ls-files -z nix | COPYFILE_DISABLE=1 tar --no-xattrs -c --null -T - | ssh "${ssh_options[@]}" "$remote" \
+  "set -eu; incoming=\$(mktemp -d \"\$HOME/.nix-upload.XXXXXX\"); tar -x --strip-components=1 -C \"\$incoming\"; if test -e \"\$HOME/nix\"; then mv \"\$HOME/nix\" \"\$HOME/nix.previous-$unit\"; fi; mv \"\$incoming\" \"\$HOME/nix\""
+
 launch_status=0
 ssh "${ssh_options[@]}" "$remote" \
   "sudo systemd-run --unit=$unit --service-type=exec --property=RemainAfterExit=yes nixos-rebuild switch --flake \$HOME/nix#firefly-pi" || launch_status=$?

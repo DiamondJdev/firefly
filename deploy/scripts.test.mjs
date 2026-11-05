@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -10,11 +10,15 @@ const root = resolve(import.meta.dirname, "..");
 function runScript(script, args = [], environment = {}) {
   const directory = mkdtempSync(join(tmpdir(), "firefly-deploy-"));
   const log = join(directory, "commands");
+  const remoteHome = join(directory, "remote");
+  mkdirSync(join(remoteHome, "nix"), { recursive: true });
+  writeFileSync(join(remoteHome, "nix", "wifi.nix"), "old credential fixture");
   mkdirSync(join(directory, "bin"));
-  for (const command of ["docker", "ssh", "git", "sleep"]) {
+  for (const command of ["docker", "ssh", "git", "sleep", "tar"]) {
     writeFileSync(join(directory, "bin", command), `#!/usr/bin/env bash
 printf '%s %s\\n' '${command}' "$*" >> "$COMMAND_LOG"
 case '${command}' in
+  tar) exec /usr/bin/tar "$@" ;;
   git)
     case "$1" in
       rev-parse) echo abc1234 ;;
@@ -27,6 +31,10 @@ case '${command}' in
       save) printf 'image bytes' ;;
     esac ;;
   ssh)
+    if [[ "\${REMOTE_COPY:-0}" == 1 && "$*" == *tar*-x* ]]; then
+      HOME="$REMOTE_HOME" /bin/bash -c "\${@: -1}"
+      exit $?
+    fi
     if [[ "$*" == *kubectl*apply* ]]; then cat >> "$COMMAND_LOG"; else cat >/dev/null; fi
     if [[ "$*" == *systemd-run* ]]; then exit "\${START_STATUS:-0}"; fi
     if [[ "$*" == *systemctl*show* ]]; then
@@ -41,10 +49,11 @@ esac
     const result = spawnSync("bash", [join(root, script), ...args], {
       cwd: root,
       encoding: "utf8",
-      env: { ...process.env, ...environment, PATH: `${directory}/bin:${process.env.PATH}`, COMMAND_LOG: log },
+      env: { ...process.env, ...environment, PATH: `${directory}/bin:${process.env.PATH}`, COMMAND_LOG: log, REMOTE_HOME: remoteHome },
       timeout: 10000,
     });
-    return { ...result, log: (() => { try { return readFileSync(log, "utf8"); } catch { return ""; } })() };
+    const backups = readdirSync(remoteHome).filter(name => name.startsWith("nix.previous-"));
+    return { ...result, remoteFiles: readdirSync(join(remoteHome, "nix")), backups, backupContent: backups.length ? readFileSync(join(remoteHome, backups[0], "wifi.nix"), "utf8") : null, log: (() => { try { return readFileSync(log, "utf8"); } catch { return ""; } })() };
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -96,4 +105,13 @@ test("Nix deployment survives a lost SSH launch response and checks the service 
 test("Nix deployment returns a failed switch's exit code", () => {
   const result = runScript("nix/deploy.sh", [], { SWITCH_STATUS: "1" });
   assert.equal(result.status, 1, result.stderr);
+});
+
+test("Nix deployment keeps stale plaintext out of the flake and preserves the old directory", () => {
+  const result = runScript("nix/deploy.sh", [], { REMOTE_COPY: "1" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.remoteFiles.sort(), ["flake.nix", "pi.nix"]);
+  assert.equal(result.backups.length, 1);
+  assert.equal(result.backupContent, "old credential fixture");
+  assert.match(result.log, /tar --no-xattrs -c/);
 });
