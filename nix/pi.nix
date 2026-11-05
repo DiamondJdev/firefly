@@ -1,11 +1,15 @@
 # Single Pi 5 demo node: WiFi, SSH, Tailscale, single-node k3s.
-{ lib, ... }:
+{ config, lib, ... }:
 {
-  imports = [ ./wifi.nix ]; # gitignored: networking.wireless.networks."SSID".psk = "...";
+  sops.defaultSopsFile = ./secrets.yaml;
+  sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
+  sops.secrets.wireless_env.restartUnits = [ "wpa_supplicant.service" ];
 
   networking.hostName = "firefly-pi";
   boot.supportedFilesystems.zfs = lib.mkForce false; # sd-image base enables ZFS; skip compiling it for the Pi kernel
   networking.wireless.enable = true;
+  networking.wireless.secretsFile = config.sops.secrets.wireless_env.path;
+  networking.wireless.networks."FBI Surveillance Van".pskRaw = "ext:psk_home";
 
   # ponytail: no user password, so no console login; SSH key only. Add one if you need the HDMI console.
   users.users.diamondjdev = {

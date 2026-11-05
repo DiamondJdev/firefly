@@ -9,6 +9,41 @@ Phoenix Firefly hosts small web projects cheaply and quickly, like Heroku or Ver
 
 ---
 
+## Single-Pi workflow
+
+The current Pi uses NixOS, k3s and Tailscale. The platform described in the remaining sections is the target architecture.
+
+### Wi-Fi secret
+
+`nix/secrets.yaml` is encrypted for the admin age key and the Pi's SSH host key. Back up `~/.config/sops/age/keys.txt` in your password manager; never commit it. Edit the credential with:
+
+```bash
+cd nix
+SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" sops secrets.yaml
+```
+
+Keep the `wireless_env` value in the form `psk_home=<password>`. The Pi decrypts it to `/run/secrets/wireless_env`; Nix only stores ciphertext.
+
+Run `nix/deploy.sh` from the Mac to copy tracked Nix files and switch the Pi. Stage new Nix files first. The rebuild runs as a systemd service, and the script reconnects after Wi-Fi interruptions to read its exit status. It waits up to 30 minutes and prints the unit name if it times out; the rebuild can still be running.
+
+Use Ethernet for the first secret migration. After verifying Wi-Fi, retire old Nix generations, the old SD image and the old `firefly-nix` container from the implementation plan. Those older copies still contain the plaintext credential. The script does not delete them or stale remote files such as `~/nix/wifi.nix`.
+
+A freshly flashed card needs Ethernet until its new SSH host key is added as a recipient. Convert the authenticated host public key with `ssh-to-age`, update `&firefly-pi` in `nix/.sops.yaml`, then run `sops --config nix/.sops.yaml updatekeys nix/secrets.yaml` from the repo root and redeploy.
+
+### Landing image
+
+With Docker Desktop running and SSH access to `firefly-pi.local`:
+
+```bash
+deploy/ship.sh landing frontend deploy/landing.yaml
+```
+
+The script builds an arm64 image, imports it into the Pi's containerd, applies the manifest and waits for rollout. Each invocation restarts the deployment, including unchanged tags. Dirty frontend builds get a timestamp suffix. The landing page is available over Tailscale at `http://landing.100.79.119.115.nip.io`; the bare Pi IP still routes to whoami.
+
+Images stay on this one node, and k3s can garbage-collect them under disk pressure. A second node needs a registry. These scripts do not configure Cloudflare or HTTPS.
+
+Run the script regression checks with `node --test deploy/scripts.test.mjs`. Frontend HTTP tests need a running app; set `TEST_URL` if it does not use port 3000.
+
 ## At a glance
 
 | **What you deploy**    | Static sites, single-container apps, and multi-container projects (including their own Postgres/Redis containers) |
