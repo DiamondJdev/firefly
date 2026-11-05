@@ -10,7 +10,7 @@ git ls-files -z nix | COPYFILE_DISABLE=1 tar --no-xattrs -c --null -T - | ssh "$
 
 launch_status=0
 ssh "${ssh_options[@]}" "$remote" \
-  "sudo systemd-run --unit=$unit --service-type=exec --property=RemainAfterExit=yes nixos-rebuild switch --flake \$HOME/nix#firefly-pi" || launch_status=$?
+  "sudo systemd-run --unit=$unit --service-type=exec --property=RemainAfterExit=yes --setenv=PATH=/run/current-system/sw/bin nixos-rebuild switch --flake \$HOME/nix#firefly-pi" || launch_status=$?
 if [[ "$launch_status" != 0 && "$launch_status" != 255 ]]; then
   exit "$launch_status"
 fi

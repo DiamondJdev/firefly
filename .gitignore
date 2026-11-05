@@ -3,3 +3,8 @@
 .claude
 result
 nix/*.img.zst
+/.private/
+*.agekey
+*.img
+*.img.zst
+__pycache__/

@@ -1,10 +1,12 @@
-# New SD card: convert its SSH host public key again, update &firefly-pi, then: sops --config nix/.sops.yaml updatekeys nix/secrets.yaml
+# Wi-Fi only: the reusable private image carries the wifi-image identity, never the admin identity.
 keys:
   - &admin age1h69ywtazuzymjmfl0n0gd95sae24xt7u9hvf826llr33k94yk3eqg52f7l
   - &firefly-pi age1p2vpyp9fda5y288yzt3gk8hjmguseeyznjl3anv4lskfdf7npyeshesrus
+  - &wifi-image age1uwf2z2azunfppz4swk373fpfa2vch6sg0svd4lnyalrxmxksk9rs9e758t
 creation_rules:
-  - path_regex: secrets\.yaml$
+  - path_regex: ^secrets\.yaml$
     key_groups:
       - age:
           - *admin
           - *firefly-pi
+          - *wifi-image

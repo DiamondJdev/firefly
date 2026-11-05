@@ -20,6 +20,22 @@
   outputs =
     { nixos-raspberrypi, sops-nix, ... }:
     {
+      packages.aarch64-linux.image-tools =
+        let
+          pkgs = nixos-raspberrypi.inputs.nixpkgs.legacyPackages.aarch64-linux;
+        in
+        pkgs.buildEnv {
+          name = "firefly-image-tools";
+          paths = with pkgs; [
+            python3
+            e2fsprogs
+            util-linux
+            zstd
+            sops
+            age
+          ];
+        };
+
       # nix build ./nix#nixosConfigurations.firefly-pi.config.system.build.sdImage
       nixosConfigurations.firefly-pi = nixos-raspberrypi.lib.nixosSystem {
         modules = [

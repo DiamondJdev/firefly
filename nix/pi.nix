@@ -2,8 +2,13 @@
 { config, lib, ... }:
 {
   sops.defaultSopsFile = ./secrets.yaml;
+  sops.age.keyFile = "/var/lib/firefly/wifi.agekey";
+  sops.age.generateKey = true;
   sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
-  sops.secrets.wireless_env.restartUnits = [ "wpa_supplicant.service" ];
+  sops.secrets.wireless_env = {
+    owner = "wpa_supplicant";
+    restartUnits = [ "wpa_supplicant.service" ];
+  };
 
   networking.hostName = "firefly-pi";
   boot.supportedFilesystems.zfs = lib.mkForce false; # sd-image base enables ZFS; skip compiling it for the Pi kernel

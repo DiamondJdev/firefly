@@ -7,6 +7,13 @@ import { spawnSync } from "node:child_process";
 
 const root = resolve(import.meta.dirname, "..");
 
+test("private Wi-Fi identities and images are ignored by Git", () => {
+  for (const path of [".private/wifi-image.agekey", ".private/firefly-wifi.img.zst", "nix/test.img", "nix/test.agekey"]) {
+    const result = spawnSync("git", ["check-ignore", "--no-index", "--quiet", path], { cwd: root });
+    assert.equal(result.status, 0, `${path} must be ignored`);
+  }
+});
+
 function runScript(script, args = [], environment = {}) {
   const directory = mkdtempSync(join(tmpdir(), "firefly-deploy-"));
   const log = join(directory, "commands");
@@ -97,6 +104,7 @@ test("Nix deployment survives a lost SSH launch response and checks the service 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.log, /git ls-files/);
   assert.match(result.log, /systemd-run/);
+  assert.match(result.log, /--setenv=PATH=\/run\/current-system\/sw\/bin/);
   assert.match(result.log, /systemctl show/);
   assert.equal((result.log.match(/ssh .*systemctl show/g) || []).length, 2);
   assert.doesNotMatch(result.log, /--pipe|rm -rf/);
