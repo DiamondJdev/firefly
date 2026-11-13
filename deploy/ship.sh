@@ -27,7 +27,7 @@ if [[ "$architecture" != arm64 ]]; then
 fi
 
 ssh_options=(-o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=5 -o ServerAliveCountMax=3)
-docker save "$image" | ssh "${ssh_options[@]}" firefly-pi.local sudo k3s ctr images import -
-sed "s|IMAGE|$image|g" "$manifest" | ssh "${ssh_options[@]}" firefly-pi.local k3s kubectl apply -f -
-ssh "${ssh_options[@]}" firefly-pi.local k3s kubectl rollout restart "deploy/$name"
-ssh "${ssh_options[@]}" firefly-pi.local k3s kubectl rollout status "deploy/$name" --timeout=120s
+docker save "$image" | ssh "${ssh_options[@]}" firefly-pi sudo k3s ctr images import -
+sed "s|IMAGE|$image|g" "$manifest" | ssh "${ssh_options[@]}" firefly-pi k3s kubectl apply -f -
+ssh "${ssh_options[@]}" firefly-pi k3s kubectl rollout restart "deploy/$name"
+ssh "${ssh_options[@]}" firefly-pi k3s kubectl rollout status "deploy/$name" --timeout=120s

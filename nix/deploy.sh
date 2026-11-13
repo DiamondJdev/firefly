@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-remote=firefly-pi.local
+remote=firefly-pi
 ssh_options=(-o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=5 -o ServerAliveCountMax=3)
 unit="firefly-switch-$(date +%s)-$$"
 git ls-files -z nix | COPYFILE_DISABLE=1 tar --no-xattrs -c --null -T - | ssh "${ssh_options[@]}" "$remote" \

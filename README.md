@@ -82,7 +82,7 @@ docker exec firefly-nix sh -c '
 
 ### Landing image
 
-With Docker Desktop running and SSH access to `firefly-pi.local`:
+With Docker Desktop running and SSH access to `firefly-pi` (its Tailscale name):
 
 ```bash
 deploy/ship.sh landing frontend deploy/landing.yaml
