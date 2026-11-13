@@ -98,7 +98,7 @@ Run the script regression checks with `node --test deploy/scripts.test.mjs`. Fro
 
 | **What you deploy**    | Static sites, single-container apps, and multi-container projects (including their own Postgres/Redis containers) |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **How you deploy**     | `git push`, the `pi` CLI, or the web dashboard                                                                    |
+| **How you deploy**     | `git push`, the `pf` CLI, or the web dashboard                                                                    |
 | **What you get**       | `myapp.<domain>` over HTTPS, plus a preview URL for every pull request                                            |
 | **What it runs on**    | 5× Raspberry Pi 5 (8GB) + an always-on desktop + a gaming desktop that pitches in when it's free                  |
 | **Open ports at home** | **Zero.** All traffic arrives through a Cloudflare Tunnel                                                         |
@@ -140,9 +140,9 @@ Three front doors, one path. They all end with the API writing an `App` resource
 ```bash
 # or skip GitHub entirely
 cd my-project
-pi deploy            # uploads source, streams build logs, prints the URL
-pi logs my-project -f
-pi env set API_KEY=...
+pf deploy            # uploads source, streams build logs, prints the URL
+pf logs my-project -f
+pf env set API_KEY=...
 ```
 
 ---
@@ -217,7 +217,7 @@ Every pull request gets its own URL and its own fresh database. Idle previews sl
 
 | Signal | Tooling | Where you see it |
 |---|---|---|
-| 📜 Logs | Vector → VictoriaLogs | `pi logs -f`, dashboard tail |
+| 📜 Logs | Vector → VictoriaLogs | `pf logs -f`, dashboard tail |
 | 📈 Metrics | VictoriaMetrics + kube-state-metrics | Per-app usage vs. tier limit |
 | 🌡️ Node health | `vcgencmd`, smart plug | Pi temps, throttling, cluster wattage and cost |
 
@@ -239,7 +239,7 @@ pipaas/
 ├── builder/      # Rust · build routing (cross-compile / fallback / deferred)
 ├── api/          # TypeScript · REST API + GitHub App webhooks
 ├── dashboard/    # TypeScript · web UI
-├── cli/          # TypeScript · the `pi` command
+├── cli/          # TypeScript · the `pf` command
 └── templates/    # cross-compile Dockerfiles per stack
 ```
 
