@@ -64,6 +64,17 @@ class BootstrapConfigTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0, "Wi-Fi image recipients must not apply to other secret files")
 
 
+class ReusableImageTests(unittest.TestCase):
+    def test_image_config_only_needs_secrets_the_wifi_image_key_can_decrypt(self):
+        # sops-install-secrets installs nothing if any secret fails, so one extra secret means no Wi-Fi on a fresh card.
+        repository = Path(__file__).resolve().parents[2]
+        result = subprocess.run([
+            "nix", "eval", "--json", f"{repository}/nix#nixosConfigurations.firefly-pi-image.config",
+            "--apply", "config: { secrets = builtins.attrNames config.sops.secrets; tunnel = config.services.cloudflared.enable; }",
+        ], check=True, capture_output=True, text=True)
+        self.assertEqual(json.loads(result.stdout), {"secrets": ["wireless_env"], "tunnel": False})
+
+
 class TunnelSecretTests(unittest.TestCase):
     def test_tunnel_credentials_exclude_wifi_image_recipient(self):
         repository = Path(__file__).resolve().parents[2]
