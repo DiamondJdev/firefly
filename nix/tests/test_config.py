@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import unittest
@@ -51,6 +52,19 @@ class BootstrapConfigTests(unittest.TestCase):
                 "--encrypt", "--input-type", "json", "--output-type", "yaml", str(source),
             ], capture_output=True)
             self.assertNotEqual(result.returncode, 0, "Wi-Fi image recipients must not apply to other secret files")
+
+
+class TunnelSecretTests(unittest.TestCase):
+    def test_tunnel_credentials_exclude_wifi_image_recipient(self):
+        repository = Path(__file__).resolve().parents[2]
+        sops_config = (repository / "nix/.sops.yaml").read_text()
+        wifi_image = re.search(r"&wifi-image (age1\w+)", sops_config).group(1)
+        admin = re.search(r"&admin (age1\w+)", sops_config).group(1)
+        pi = re.search(r"&firefly-pi (age1\w+)", sops_config).group(1)
+        metadata = json.loads((repository / "nix/tunnel-credentials.json").read_text())["sops"]
+        recipients = {entry["recipient"] for entry in metadata["age"]}
+        self.assertEqual(recipients, {admin, pi})
+        self.assertNotIn(wifi_image, recipients)
 
 
 if __name__ == "__main__":
