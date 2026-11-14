@@ -44,7 +44,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: landing.100.79.119.115.nip.io
+    - host: landing.diamondjdev.me
       http:
         paths:
           - path: /

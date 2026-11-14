@@ -1,4 +1,5 @@
-# Demo container: kubectl apply -f nix/demo-app.yaml, then open http://<pi-tailscale-ip>/
+# Demo container: kubectl apply -f nix/demo-app.yaml, then open http://whoami.100.79.119.115.nip.io/ over Tailscale.
+# Has a host on purpose: a host-less rule catches every hostname, including unknown *.diamondjdev.me ones from the tunnel.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -33,7 +34,8 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - http:
+    - host: whoami.100.79.119.115.nip.io
+      http:
         paths:
           - path: /
             pathType: Prefix
