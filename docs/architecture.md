@@ -86,8 +86,9 @@ Three front doors, one backend. The git push, CLI and dashboard paths all end in
 
 **URLs**
 
-- Production: `<app>.<platform-domain>` through a wildcard DNS record on the tunnel
-- Previews: `<app>-pr-<n>.<platform-domain>`, or `<app>-<branch>` for CLI deploys
+- Production: `<app>.diamondjdev.me` through a wildcard DNS record on the tunnel
+- Previews: `<app>-pr-<n>.diamondjdev.me`, or `<app>-<branch>.diamondjdev.me` for CLI deploys
+- Hostnames stay one label deep: the free Universal SSL certificate covers `*.diamondjdev.me` only
 - Cloudflare terminates TLS at the edge; inside the cluster, Traefik (bundled with k3s) routes by hostname
 
 **Preview lifecycle**
@@ -103,7 +104,7 @@ The home network is never exposed directly: no open ports, and the home IP stays
 
 **Network**
 
-- `cloudflared` runs as a 2-replica Deployment on Pis; only it reaches the internet inbound
+- `cloudflared` runs as a NixOS service on the one Pi and only dials out. It becomes a 2-replica Deployment once a second Pi joins
 - Put the cluster on its own VLAN or subnet, firewalled from personal devices. This matters most once outside users arrive
 - Admin access to nodes over Tailscale; SSH keys only, defined in the NixOS flake
 
@@ -153,7 +154,7 @@ A phase isn't done until its gate passes on real hardware, including after a nod
 **Open questions**
 
 - [ ] Final platform name, and a CLI name that doesn't collide with existing `pi` tools
-- [ ] Platform domain: a subdomain of diamondjdev.me, or a new domain on Cloudflare
+- [x] Platform domain: `*.diamondjdev.me`
 - [ ] New desktop specs: RAM and NVMe size set how many large-tier services fit
 - [ ] NixOS on Pi 5: confirm the boot path (nixos-raspberrypi or a UEFI image) before Phase 0
 - [ ] Seeding preview databases: empty, a seed script in the repo, or a sanitized snapshot

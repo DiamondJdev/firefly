@@ -88,9 +88,17 @@ With Docker Desktop running and SSH access to `firefly-pi` (its Tailscale name):
 deploy/ship.sh landing frontend deploy/landing.yaml
 ```
 
-The script builds an arm64 image, imports it into the Pi's containerd, applies the manifest and waits for rollout. Each invocation restarts the deployment, including unchanged tags. Dirty frontend builds get a timestamp suffix. The landing page is available over Tailscale at `http://landing.100.79.119.115.nip.io`; the bare Pi IP still routes to whoami.
+The script builds an arm64 image, imports it into the Pi's containerd, applies the manifest and waits for rollout. Each invocation restarts the deployment, including unchanged tags. Dirty frontend builds get a timestamp suffix. The landing page is public at `https://landing.diamondjdev.me`. The reusable Wi-Fi image is built from `firefly-pi-image`, which leaves the tunnel out, so a fresh card never needs the tunnel secret.
 
-Images stay on this one node, and k3s can garbage-collect them under disk pressure. A second node needs a registry. These scripts do not configure Cloudflare or HTTPS.
+Images stay on this one node, and k3s can garbage-collect them under disk pressure. A second node needs a registry.
+
+### Public URLs
+
+One Cloudflare Tunnel, run by `services.cloudflared` in `nix/tunnel.nix`, carries every `*.diamondjdev.me` request to Traefik on the Pi. A proxied wildcard DNS record points at the tunnel, and Cloudflare's free certificate handles HTTPS. To publish a new app, give its Ingress `host: <app>.diamondjdev.me`. Nothing changes on the Cloudflare side. Unknown hostnames get Traefik's 404.
+
+Keep hostnames one label deep (`app.diamondjdev.me`, `app-pr-3.diamondjdev.me`). The free certificate covers `*.diamondjdev.me` only, so `app.pf.diamondjdev.me` fails HTTPS. Explicit DNS records such as `emailer` win over the wildcard and never reach the tunnel.
+
+The tunnel credentials live in `nix/tunnel-credentials.json`, encrypted for the `admin` and `firefly-pi` keys only. To rotate them, run `cloudflared tunnel delete firefly` and redo Task 2 of `docs/superpowers/plans/2026-11-13-cloudflare-tunnel.md`, then update the tunnel ID in `nix/tunnel.nix` and `nix/tests/test_config.py`. Only Tailscale reaches whoami now, at `http://whoami.100.79.119.115.nip.io`.
 
 Run the script regression checks with `node --test deploy/scripts.test.mjs`. Frontend HTTP tests need a running app; set `TEST_URL` if it does not use port 3000.
 

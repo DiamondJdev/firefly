@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import unittest
@@ -19,6 +20,10 @@ class BootstrapConfigTests(unittest.TestCase):
               mode = config.sops.secrets.wireless_env.mode;
               keyActivation = config.system.activationScripts.generate-age-key.text;
               secretDependencies = config.system.activationScripts.setupSecrets.deps;
+              tunnel = {
+                inherit (config.services.cloudflared.tunnels."c316183f-58f5-4dc3-9046-bb258677cbbc") ingress default credentialsFile;
+              };
+              tunnelSecretPath = config.sops.secrets.cloudflared-tunnel.path;
             }""",
         ], check=True, capture_output=True, text=True)
         cls.configuration = json.loads(result.stdout)
@@ -30,6 +35,12 @@ class BootstrapConfigTests(unittest.TestCase):
         self.assertEqual(self.configuration["owner"], "wpa_supplicant")
         self.assertEqual(self.configuration["mode"], "0400")
         self.assertIn("generate-age-key", self.configuration["secretDependencies"])
+
+    def test_one_wildcard_tunnel_routes_to_traefik(self):
+        tunnel = self.configuration["tunnel"]
+        self.assertEqual(tunnel["ingress"], {"*.diamondjdev.me": "http://localhost:80"})
+        self.assertEqual(tunnel["default"], "http_status:404")
+        self.assertEqual(tunnel["credentialsFile"], self.configuration["tunnelSecretPath"])
 
     def test_missing_identity_is_generated_and_existing_identity_is_preserved(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -51,6 +62,30 @@ class BootstrapConfigTests(unittest.TestCase):
                 "--encrypt", "--input-type", "json", "--output-type", "yaml", str(source),
             ], capture_output=True)
             self.assertNotEqual(result.returncode, 0, "Wi-Fi image recipients must not apply to other secret files")
+
+
+class ReusableImageTests(unittest.TestCase):
+    def test_image_config_only_needs_secrets_the_wifi_image_key_can_decrypt(self):
+        # sops-install-secrets installs nothing if any secret fails, so one extra secret means no Wi-Fi on a fresh card.
+        repository = Path(__file__).resolve().parents[2]
+        result = subprocess.run([
+            "nix", "eval", "--json", f"{repository}/nix#nixosConfigurations.firefly-pi-image.config",
+            "--apply", "config: { secrets = builtins.attrNames config.sops.secrets; tunnel = config.services.cloudflared.enable; }",
+        ], check=True, capture_output=True, text=True)
+        self.assertEqual(json.loads(result.stdout), {"secrets": ["wireless_env"], "tunnel": False})
+
+
+class TunnelSecretTests(unittest.TestCase):
+    def test_tunnel_credentials_exclude_wifi_image_recipient(self):
+        repository = Path(__file__).resolve().parents[2]
+        sops_config = (repository / "nix/.sops.yaml").read_text()
+        wifi_image = re.search(r"&wifi-image (age1\w+)", sops_config).group(1)
+        admin = re.search(r"&admin (age1\w+)", sops_config).group(1)
+        pi = re.search(r"&firefly-pi (age1\w+)", sops_config).group(1)
+        metadata = json.loads((repository / "nix/tunnel-credentials.json").read_text())["sops"]
+        recipients = {entry["recipient"] for entry in metadata["age"]}
+        self.assertEqual(recipients, {admin, pi})
+        self.assertNotIn(wifi_image, recipients)
 
 
 if __name__ == "__main__":
