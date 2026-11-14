@@ -20,6 +20,10 @@ class BootstrapConfigTests(unittest.TestCase):
               mode = config.sops.secrets.wireless_env.mode;
               keyActivation = config.system.activationScripts.generate-age-key.text;
               secretDependencies = config.system.activationScripts.setupSecrets.deps;
+              tunnel = {
+                inherit (config.services.cloudflared.tunnels."c316183f-58f5-4dc3-9046-bb258677cbbc") ingress default credentialsFile;
+              };
+              tunnelSecretPath = config.sops.secrets.cloudflared-tunnel.path;
             }""",
         ], check=True, capture_output=True, text=True)
         cls.configuration = json.loads(result.stdout)
@@ -31,6 +35,12 @@ class BootstrapConfigTests(unittest.TestCase):
         self.assertEqual(self.configuration["owner"], "wpa_supplicant")
         self.assertEqual(self.configuration["mode"], "0400")
         self.assertIn("generate-age-key", self.configuration["secretDependencies"])
+
+    def test_one_wildcard_tunnel_routes_to_traefik(self):
+        tunnel = self.configuration["tunnel"]
+        self.assertEqual(tunnel["ingress"], {"*.diamondjdev.me": "http://localhost:80"})
+        self.assertEqual(tunnel["default"], "http_status:404")
+        self.assertEqual(tunnel["credentialsFile"], self.configuration["tunnelSecretPath"])
 
     def test_missing_identity_is_generated_and_existing_identity_is_preserved(self):
         with tempfile.TemporaryDirectory() as directory:
