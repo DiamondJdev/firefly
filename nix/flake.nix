@@ -36,7 +36,8 @@
           ];
         };
 
-      # nix build ./nix#nixosConfigurations.firefly-pi.config.system.build.sdImage
+      # Flashable image: bash nix/build-image.sh, which builds firefly-pi-image.
+      # Never flash firefly-pi: a fresh card can't decrypt the tunnel secret, so it boots without Wi-Fi.
       nixosConfigurations =
         let
           base = [

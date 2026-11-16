@@ -20,9 +20,8 @@ class BootstrapConfigTests(unittest.TestCase):
               mode = config.sops.secrets.wireless_env.mode;
               keyActivation = config.system.activationScripts.generate-age-key.text;
               secretDependencies = config.system.activationScripts.setupSecrets.deps;
-              tunnel = {
-                inherit (config.services.cloudflared.tunnels."c316183f-58f5-4dc3-9046-bb258677cbbc") ingress default credentialsFile;
-              };
+              tunnels = map (tunnel: { inherit (tunnel) ingress default credentialsFile; })
+                (builtins.attrValues config.services.cloudflared.tunnels);
               tunnelSecretPath = config.sops.secrets.cloudflared-tunnel.path;
             }""",
         ], check=True, capture_output=True, text=True)
@@ -37,7 +36,7 @@ class BootstrapConfigTests(unittest.TestCase):
         self.assertIn("generate-age-key", self.configuration["secretDependencies"])
 
     def test_one_wildcard_tunnel_routes_to_traefik(self):
-        tunnel = self.configuration["tunnel"]
+        (tunnel,) = self.configuration["tunnels"]
         self.assertEqual(tunnel["ingress"], {"*.diamondjdev.me": "http://localhost:80"})
         self.assertEqual(tunnel["default"], "http_status:404")
         self.assertEqual(tunnel["credentialsFile"], self.configuration["tunnelSecretPath"])
@@ -79,13 +78,11 @@ class TunnelSecretTests(unittest.TestCase):
     def test_tunnel_credentials_exclude_wifi_image_recipient(self):
         repository = Path(__file__).resolve().parents[2]
         sops_config = (repository / "nix/.sops.yaml").read_text()
-        wifi_image = re.search(r"&wifi-image (age1\w+)", sops_config).group(1)
         admin = re.search(r"&admin (age1\w+)", sops_config).group(1)
         pi = re.search(r"&firefly-pi (age1\w+)", sops_config).group(1)
         metadata = json.loads((repository / "nix/tunnel-credentials.json").read_text())["sops"]
         recipients = {entry["recipient"] for entry in metadata["age"]}
         self.assertEqual(recipients, {admin, pi})
-        self.assertNotIn(wifi_image, recipients)
 
 
 if __name__ == "__main__":

@@ -88,7 +88,7 @@ With Docker Desktop running and SSH access to `firefly-pi` (its Tailscale name):
 deploy/ship.sh landing frontend deploy/landing.yaml
 ```
 
-The script builds an arm64 image, imports it into the Pi's containerd, applies the manifest and waits for rollout. Each invocation restarts the deployment, including unchanged tags. Dirty frontend builds get a timestamp suffix. The landing page is public at `https://landing.diamondjdev.me`. The reusable Wi-Fi image is built from `firefly-pi-image`, which leaves the tunnel out, so a fresh card never needs the tunnel secret.
+The script builds an arm64 image, imports it into the Pi's containerd, applies the manifest and waits for rollout. Each invocation restarts the deployment, including unchanged tags. Dirty frontend builds get a timestamp suffix. The landing page is public at `https://landing.diamondjdev.me`. The reusable Wi-Fi image is built from `firefly-pi-image`, which leaves the tunnel out, so a fresh card boots without the tunnel secret.
 
 Images stay on this one node, and k3s can garbage-collect them under disk pressure. A second node needs a registry.
 
@@ -98,7 +98,41 @@ One Cloudflare Tunnel, run by `services.cloudflared` in `nix/tunnel.nix`, carrie
 
 Keep hostnames one label deep (`app.diamondjdev.me`, `app-pr-3.diamondjdev.me`). The free certificate covers `*.diamondjdev.me` only, so `app.pf.diamondjdev.me` fails HTTPS. Explicit DNS records such as `emailer` win over the wildcard and never reach the tunnel.
 
-The tunnel credentials live in `nix/tunnel-credentials.json`, encrypted for the `admin` and `firefly-pi` keys only. To rotate them, run `cloudflared tunnel delete firefly` and redo Task 2 of `docs/superpowers/plans/2026-11-13-cloudflare-tunnel.md`, then update the tunnel ID in `nix/tunnel.nix` and `nix/tests/test_config.py`. Only Tailscale reaches whoami now, at `http://whoami.100.79.119.115.nip.io`.
+Only Tailscale reaches whoami now, at `http://whoami.100.79.119.115.nip.io`.
+
+#### Rotating the tunnel credentials
+
+The tunnel credentials live in `nix/tunnel-credentials.json`, encrypted for the `admin` and `firefly-pi` keys only. Rotating them takes every public app offline from the first command until the deploy at the end. Run these on the Mac. They need `~/.cloudflared/cert.pem`, which `cloudflared tunnel login` creates.
+
+```bash
+cloudflared tunnel delete --force firefly
+cloudflared tunnel create firefly
+cloudflared tunnel route dns --overwrite-dns firefly '*.diamondjdev.me'
+cd nix
+sops --config .sops.yaml encrypt --input-type binary --output-type json \
+  --filename-override tunnel-credentials.json ~/.cloudflared/<uuid>.json > tunnel-credentials.json
+```
+
+`delete` refuses while the Pi is connected unless you pass `--force`, and `route dns` refuses to repoint the existing wildcard record unless you pass `--overwrite-dns`. `create` prints the new tunnel ID, which is the `<uuid>` in the last command. Put that ID in `nix/tunnel.nix`, delete `~/.cloudflared/<uuid>.json`, then run `nix/deploy.sh`.
+
+#### Before the first deploy to a reflashed card
+
+`nix/deploy.sh` switches the Pi to `firefly-pi`, which needs the tunnel secret. A reflashed card has a new SSH host key, so it can't decrypt that secret, and sops-nix installs no secrets at all when one fails. The deploy would leave the card without Wi-Fi after its next reboot. Print the card's recipient first:
+
+```bash
+ssh-keyscan -t ed25519 firefly-pi.local 2>/dev/null | docker exec -i firefly-nix nix run nixpkgs#ssh-to-age
+```
+
+Replace `&firefly-pi` in `nix/.sops.yaml` with that recipient, rewrap both files with the admin key, and then deploy:
+
+```bash
+SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
+  sops --config nix/.sops.yaml updatekeys --yes nix/secrets.yaml
+SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
+  sops --config nix/.sops.yaml updatekeys --yes nix/tunnel-credentials.json
+```
+
+Deploy `firefly-pi` to one Pi only. A second Pi running the same tunnel would receive a share of the public requests on its own separate cluster.
 
 Run the script regression checks with `node --test deploy/scripts.test.mjs`. Frontend HTTP tests need a running app; set `TEST_URL` if it does not use port 3000.
 
