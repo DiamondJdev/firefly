@@ -36,14 +36,21 @@
           ];
         };
 
-      # nix build ./nix#nixosConfigurations.firefly-pi.config.system.build.sdImage
-      nixosConfigurations.firefly-pi = nixos-raspberrypi.lib.nixosSystem {
-        modules = [
-          nixos-raspberrypi.nixosModules.raspberry-pi-5.base
-          nixos-raspberrypi.nixosModules.sd-image
-          sops-nix.nixosModules.sops
-          ./pi.nix
-        ];
-      };
+      # Flashable image: bash nix/build-image.sh, which builds firefly-pi-image.
+      # Never flash firefly-pi: a fresh card can't decrypt the tunnel secret, so it boots without Wi-Fi.
+      nixosConfigurations =
+        let
+          base = [
+            nixos-raspberrypi.nixosModules.raspberry-pi-5.base
+            nixos-raspberrypi.nixosModules.sd-image
+            sops-nix.nixosModules.sops
+            ./pi.nix
+          ];
+        in
+        {
+          firefly-pi = nixos-raspberrypi.lib.nixosSystem { modules = base ++ [ ./tunnel.nix ]; };
+          # Reusable Wi-Fi image: only secrets the wifi-image key can decrypt.
+          firefly-pi-image = nixos-raspberrypi.lib.nixosSystem { modules = base; };
+        };
     };
 }

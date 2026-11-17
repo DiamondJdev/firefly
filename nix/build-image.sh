@@ -26,7 +26,7 @@ umask 077
 cd /work
 tools=$(nix build --no-link --print-out-paths ./nix#image-tools)
 export PATH="$tools/bin:$PATH"
-base=$(nix build --no-link --print-out-paths ./nix#nixosConfigurations.firefly-pi.config.system.build.sdImage)
+base=$(nix build --no-link --print-out-paths ./nix#nixosConfigurations.firefly-pi-image.config.system.build.sdImage)
 set -- "$base"/sd-image/*.img.zst
 test "$#" -eq 1 && test -f "$1"
 python3 nix/prepare-image.py "$1" .private/wifi-image.agekey nix/secrets.yaml .private/firefly-wifi.img.zst
