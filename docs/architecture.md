@@ -28,7 +28,7 @@ The design fits the hardware on hand: five 8GB Pi 5s on SD cards, one Ethernet c
 - **Disk load:** SQLite, every database, Zot and the backup job share HDD 1, a spinning disk. Restic runs at low I/O priority during a quiet hour. The Phase 3 gate includes a backup running alongside an image push with the API still responding. If that stalls, the k3s datastore moves to a small USB SSD.
 - **Failure:** Pi #1 is a single point of failure. If it or HDD 1 dies, the platform is down until it is rebuilt and restored from HDD 2. That is acceptable for an owner-only v1.
 - **Memory:** the single node used 2.3GB of 8GB with almost nothing deployed. Plan on about 4.5GB for workloads on Pi #1. The estimated split is 1GB for Zot, VictoriaMetrics and VictoriaLogs, 2.5GB for one large database and one small service, and 1GB for two small preview databases.
-- **Network:** a small switch and cables (an estimated $25 to $35) would make the agents sturdier, but the design does not depend on them.
+- **Network:** k3s and pod traffic run over Tailscale, because the home router can't be configured. Nodes need no fixed LAN addresses or open LAN ports. This costs some throughput on Wi-Fi. A small switch and cables (an estimated $25 to $35) would make the agents sturdier, but the design does not depend on them.
 - **Page size:** the Pi 5 kernel uses 16K pages. Some arm64 binaries whose jemalloc was built for 4K pages abort at start, so images must be tested on the cluster. The `linux_rpi4` (bcm2711) kernel is in the nixos-raspberrypi binary cache and is the candidate 4K option. It has not been boot-tested on a Pi 5.
 
 **When an always-on desktop joins**, it takes the Ethernet cable and becomes the only k3s server, with the registry, volumes, `cloudflared` and backup drive. Every Pi then becomes a stateless agent, and a 16GB desktop could hold roughly five large databases (an estimate). It runs only pulled multi-arch images, such as Postgres and Redis, until multi-arch builds exist. The 9800X3D desktop stays outside the cluster because it goes offline unpredictably.
@@ -127,7 +127,7 @@ The home network is never exposed directly: no open ports, and the home IP stays
 
 - `cloudflared` runs as a NixOS service on Pi #1 and only dials out
 - The consumer router has no cluster VLAN, so pods share the home LAN. That is acceptable only while every workload is Cameron's own
-- Pi #1's firewall allows only SSH from the LAN today (`nix/pi.nix`). Before agents join, every node must accept 8472/udp and 10250/tcp from the other nodes, and Pi #1 must also accept 6443/tcp and Zot's port from them. Reserve each node's address on the router so these rules can name it
+- Every node's firewall allows only SSH from the LAN. k3s, flannel and Zot traffic arrive over the trusted `tailscale0` interface
 - Admin access to nodes over Tailscale; SSH keys only, defined in the NixOS flake
 
 **Access:** the dashboard and API sit behind Cloudflare Access (GitHub login, allow-list of 1). The webhook endpoint is the only bypass, verified by the GitHub App's webhook signature. The CLI authenticates with a Cloudflare Access service token.
@@ -156,6 +156,7 @@ Decided 2 Nov 2026, revised 18 Nov 2026 to fit the hardware on hand. Revisit any
 | Area | Decision | Main alternative rejected | Why |
 | --- | --- | --- | --- |
 | Tenants | Just Cameron in v1; invited users in v1.5 after the hardening gate | Invited users in v1 | Keeps isolation, abuse handling and identity out of the first release |
+| Node network | k3s and flannel over Tailscale | Reserved LAN addresses | No router admin access, and traffic stays encrypted on a shared LAN |
 | Control plane | One k3s server on Pi #1 with SQLite | Three-node etcd | etcd would be unstable on Wi-Fi and SD cards |
 | Workloads | Static sites + containers + multi-container projects | Managed databases | Compose-style DB containers cover the need with far less to build |
 | Goal | Learning + portfolio | Off-the-shelf (Coolify) | Building the operator is the point |

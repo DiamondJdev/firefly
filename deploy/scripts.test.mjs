@@ -110,6 +110,24 @@ test("Nix deployment survives a lost SSH launch response and checks the service 
   assert.doesNotMatch(result.log, /--pipe|rm -rf/);
 });
 
+test("Nix deployment targets the named host", () => {
+  const result = runScript("nix/deploy.sh", ["firefly-pi-3"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.log, /ssh .*firefly-pi-3 .*systemd-run/);
+  assert.match(result.log, /nix#firefly-pi-3/);
+});
+
+test("Nix deployment defaults to the control plane and refuses unknown hosts", () => {
+  const result = runScript("nix/deploy.sh", []);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.log, /nix#firefly-pi(\s|$)/m);
+  for (const args of [["firefly-pi-image"], ["firefly-pi-6"], ["firefly-pi", "extra"]]) {
+    const refused = runScript("nix/deploy.sh", args);
+    assert.equal(refused.status, 2);
+    assert.doesNotMatch(refused.log, /ssh /);
+  }
+});
+
 test("Nix deployment returns a failed switch's exit code", () => {
   const result = runScript("nix/deploy.sh", [], { SWITCH_STATUS: "1" });
   assert.equal(result.status, 1, result.stderr);

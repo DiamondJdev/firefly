@@ -28,11 +28,12 @@ Naming: the CLI is `firefly`, with a `pf` alias.
 
 | Path | What | Commands (run from that directory) |
 |---|---|---|
-| `nix/flake.nix` | Flake. `firefly-pi` is the live config (with tunnel); `firefly-pi-image` is the flashable image (no tunnel). `image-tools` is the test toolbox. | |
-| `nix/pi.nix` | Node config: Wi-Fi via sops, SSH, Avahi, Tailscale, k3s | |
+| `nix/flake.nix` | Flake. `firefly-pi` is the live server (with tunnel), `firefly-pi-2` to `-5` are agents, and `firefly-pi-image` is the flashable bootstrap image (`firefly-new`, no k3s or tunnel). `image-tools` is the test toolbox. | |
+| `nix/pi.nix` | Shared node config: Wi-Fi via sops, SSH, Avahi, Tailscale, firewall | |
+| `nix/k3s-server.nix`, `nix/k3s-agent.nix`, `nix/k3s-tailscale.nix` | k3s roles, with cluster traffic over Tailscale | |
 | `nix/tunnel.nix` | `cloudflared` wildcard tunnel, live Pi only | |
-| `nix/.sops.yaml`, `nix/secrets.yaml`, `nix/tunnel-credentials.json` | sops recipients and encrypted secrets | |
-| `nix/deploy.sh` | Copies tracked `nix/` files to the Pi and runs `nixos-rebuild switch` | |
+| `nix/.sops.yaml`, `nix/secrets.yaml`, `nix/tunnel-credentials.json`, `nix/k3s-agent-token.json` | sops recipients and encrypted secrets | |
+| `nix/deploy.sh [host]` | Copies tracked `nix/` files to a Pi (default `firefly-pi`) and runs `nixos-rebuild switch` for that host | |
 | `nix/build-image.sh`, `nix/prepare-image.py` | Build the private reusable Wi-Fi SD image into `.private/` | |
 | `nix/tests/` | Python unittest (runs in the `firefly-nix` builder container) and Node script tests | See README "Reusable Wi-Fi image" |
 | `deploy/ship.sh`, `deploy/landing.yaml` | Build an arm64 image, import it into the Pi's containerd, apply the manifest | `node --test deploy/scripts.test.mjs nix/tests/build-image.test.mjs` (repo root) |
@@ -52,10 +53,11 @@ Test notes:
 Live infrastructure:
 
 - Ask first before running anything that reaches `firefly-pi` or Cloudflare: `nix/deploy.sh`, `deploy/ship.sh`, `ssh firefly-pi`, `cloudflared tunnel ...`, `sops updatekeys`. Approval covers one run.
-- Never flash `firefly-pi`. Only `bash nix/build-image.sh` makes a flashable image, from `firefly-pi-image`. A fresh card can't decrypt the tunnel secret, and sops-nix then installs no secrets, Wi-Fi included.
+- Never flash `firefly-pi` or an agent config. Only `bash nix/build-image.sh` makes a flashable image, from `firefly-pi-image`. A fresh card can't decrypt the tunnel secret, and sops-nix then installs no secrets, Wi-Fi included.
 - The Pi's kubeconfig is root-only. Use `sudo k3s kubectl` there.
 - Deploy `firefly-pi` to one Pi only. A second Pi on the same tunnel takes a share of public traffic on a separate cluster.
-- Before deploying to a reflashed card, rewrap both secret files for its new host key (README, "Before the first deploy to a reflashed card").
+- Before deploying to a reflashed card, rewrap its secret files for its new host key. README covers `firefly-pi` ("Before the first deploy to a reflashed card") and agents ("Adding an agent Pi").
+- Log in to Tailscale before deploying a node. k3s will not start without a Tailscale address.
 
 Secrets:
 

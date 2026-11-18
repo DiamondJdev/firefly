@@ -1,4 +1,4 @@
-# Single Pi 5 demo node: WiFi, SSH, Tailscale, single-node k3s.
+# Shared by every Pi 5: Wi-Fi, SSH, Tailscale and what k3s needs from the OS.
 { config, lib, ... }:
 {
   sops.defaultSopsFile = ./secrets.yaml;
@@ -10,7 +10,6 @@
     restartUnits = [ "wpa_supplicant.service" ];
   };
 
-  networking.hostName = "firefly-pi";
   boot.supportedFilesystems.zfs = lib.mkForce false; # sd-image base enables ZFS; skip compiling it for the Pi kernel
   networking.wireless.enable = true;
   networking.wireless.secretsFile = config.sops.secrets.wireless_env.path;
@@ -31,7 +30,7 @@
     settings.PermitRootLogin = "no";
   };
 
-  # First SSH via firefly-pi.local, before Tailscale is logged in.
+  # First SSH via firefly-new.local, before Tailscale is logged in.
   services.avahi = {
     enable = true;
     nssmdns4 = true;
@@ -44,17 +43,6 @@
   # Log in once with `sudo tailscale up`; no auth key stored in config.
   services.tailscale.enable = true;
 
-  services.k3s = {
-    enable = true;
-    role = "server";
-    # Pin IPv4: if IPv6 comes up first at boot, k3s otherwise creates a permanent IPv6-only cluster.
-    extraFlags = [
-      "--write-kubeconfig-mode=0600"
-      "--secrets-encryption"
-      "--cluster-cidr=10.42.0.0/16"
-      "--service-cidr=10.43.0.0/16"
-    ];
-  };
   # Pi kernels ship with the memory cgroup off; k3s won't start without it.
   boot.kernelParams = [
     "cgroup_enable=cpuset"
@@ -69,10 +57,12 @@
   };
   nix.settings.auto-optimise-store = true;
 
-  # k3s API and apps reachable only over Tailscale; cni0 lets pods reach the API. LAN gets SSH only.
+  # k3s API, node traffic and apps reachable only over Tailscale. cni0 and flannel.1 let pods on
+  # any node reach the API. LAN gets SSH only.
   networking.firewall.trustedInterfaces = [
     "tailscale0"
     "cni0"
+    "flannel.1"
   ];
 
   system.stateVersion = "26.05";

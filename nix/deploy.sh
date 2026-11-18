@@ -2,7 +2,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-remote=firefly-pi
+remote=${1:-firefly-pi}
+if [[ $# -gt 1 || ! "$remote" =~ ^firefly-pi(-[2-5])?$ ]]; then
+  printf 'Usage: %s [firefly-pi|firefly-pi-2|firefly-pi-3|firefly-pi-4|firefly-pi-5]\n' "$0" >&2
+  exit 2
+fi
 ssh_options=(-o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=5 -o ServerAliveCountMax=3)
 unit="firefly-switch-$(date +%s)-$$"
 git ls-files -z nix | COPYFILE_DISABLE=1 tar --no-xattrs -c --null -T - | ssh "${ssh_options[@]}" "$remote" \
@@ -10,7 +14,7 @@ git ls-files -z nix | COPYFILE_DISABLE=1 tar --no-xattrs -c --null -T - | ssh "$
 
 launch_status=0
 ssh "${ssh_options[@]}" "$remote" \
-  "sudo systemd-run --unit=$unit --service-type=exec --property=RemainAfterExit=yes --setenv=PATH=/run/current-system/sw/bin nixos-rebuild switch --flake \$HOME/nix#firefly-pi" || launch_status=$?
+  "sudo systemd-run --unit=$unit --service-type=exec --property=RemainAfterExit=yes --setenv=PATH=/run/current-system/sw/bin nixos-rebuild switch --flake \$HOME/nix#$remote" || launch_status=$?
 if [[ "$launch_status" != 0 && "$launch_status" != 255 ]]; then
   exit "$launch_status"
 fi
