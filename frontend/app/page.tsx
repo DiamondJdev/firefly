@@ -12,7 +12,7 @@ const questions = [
 ];
 
 const stages: [string, string][] = [
-  ["Source", "A push, a Dockerfile, or the pi CLI."],
+  ["Source", "A push, a Dockerfile, or the firefly CLI."],
   ["Build", "BuildKit prepares images for ARM and x86."],
   ["Reconcile", "A Rust operator turns intent into containers."],
   ["Serve", "Traefik routes requests through Cloudflare."],

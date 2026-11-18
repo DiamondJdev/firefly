@@ -73,7 +73,7 @@ test("ship requires three arguments before running commands", () => {
   assert.equal(result.log, "");
 });
 
-test("ship builds arm64, imports, substitutes the image and forces a fresh rollout", () => {
+test("ship builds arm64, imports, substitutes the image and rolls out once", () => {
   const result = runScript("deploy/ship.sh", ["landing", "frontend", "deploy/landing.yaml"]);
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.log, /docker build --platform linux\/arm64 -t firefly\/landing:abc1234 frontend/);
@@ -81,7 +81,7 @@ test("ship builds arm64, imports, substitutes the image and forces a fresh rollo
   assert.match(result.log, /sudo k3s kubectl apply -f -/);
   assert.match(result.log, /image: firefly\/landing:abc1234/);
   assert.doesNotMatch(result.log, /image: IMAGE/);
-  assert.match(result.log, /sudo k3s kubectl rollout restart deploy\/landing/);
+  assert.doesNotMatch(result.log, /rollout restart/);
   assert.match(result.log, /sudo k3s kubectl rollout status deploy\/landing --timeout=120s/);
 });
 

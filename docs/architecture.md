@@ -34,7 +34,7 @@ Each machine gets one job matched to its uptime. The rule: nothing that holds st
 
 k3s does scheduling. Cameron's code is the PaaS layer on top: a TS API, dashboard and CLI that write `App` resources, and a Rust operator that turns them into running workloads.
 
-![[Screenshot 2026-11-02 at 2.25.34 PM.png]]
+![All traffic enters via the tunnel; the operator turns App resources into pods](diagrams/all-traffic-enters-via-the-tunnel-the-operator-tur.svg)
 
 The operator is the heart of the system: every front door converges on an `App` resource, and the operator creates the Kubernetes objects, then deploys onto app pods. k3s components (Traefik, CoreDNS, local-path provisioner) are used as bundled; ServiceLB stays enabled because the tunnel reaches Traefik through it at `localhost:80`.
 
@@ -42,13 +42,13 @@ The operator is the heart of the system: every front door converges on an `App` 
 
 Every deploy compiles once and produces a multi-arch image when a desktop is available. Pis only build when they must.
 
-![[Screenshot 2026-11-02 at 2.25.13 PM.png]]
+![One compile serves both architectures; Pis build only when no desktop is up](diagrams/one-compile-serves-both-architectures-pis-build-on.svg)
 
 - **Detection:** the Rust build orchestrator parses the Dockerfile (`dockerfile-parser` crate) and checks that build stages use `FROM --platform=$BUILDPLATFORM`. It does not grep for the string.
 - **Builders:** BuildKit runs in k3s through the buildx Kubernetes driver, with a node selector per platform. The new desktop is the primary builder; the 9800X3D adds capacity when it's booted into NixOS.
 - **Cache:** `--cache-to/--cache-from type=registry` against an in-cluster Zot registry on the new desktop, so rebuilds are incremental and images never leave the LAN.
 - **Deferred amd64 leg:** an arm64-only image gets `arch=arm64` placement from the operator. When a desktop returns, a queued job builds amd64 and merges both into one manifest list with `docker buildx imagetools create`. The operator then lifts the pin.
-- **Template:** `pi init` writes a cross-compile Dockerfile template per stack (static, Node, Python, Rust) so the default path is the fast one.
+- **Template:** `firefly init` writes a cross-compile Dockerfile template per stack (static, Node, Python, Rust) so the default path is the fast one.
 
 ## Apps, services and storage
 
@@ -66,9 +66,9 @@ A project is one `App` custom resource holding one or more services. Multi-conta
 
 **Backups:** a nightly restic job snapshots every PVC to the NAS Pi (6TB drive). Databases get a pre-backup dump hook (`pg_dump`, `redis-cli SAVE`) so snapshots are consistent.
 
-**Size tiers** (requests = limits, so the scheduler packs predictably):
+**Size tiers.** Memory requests equal limits, so the scheduler packs predictably. CPU is a request with no limit, so a Node app can burst through its cold start.
 
-| Tier | Memory | CPU | Typical use |
+| Tier | Memory | CPU request | Typical use |
 | --- | --- | --- | --- |
 | nano | 128MB | 0.1 | Static sites, tiny APIs |
 | small | 512MB | 0.5 | Node/Python apps, Redis |
@@ -81,8 +81,25 @@ Tiers are set per service. A project's total is the sum, which maps cleanly to p
 Three front doors, one backend. The git push, CLI and dashboard paths all end in the TS API writing an `App` resource. The operator does the rest, so no path has special behavior.
 
 1. **git push:** a GitHub App sends push and pull-request webhooks through the Cloudflare Tunnel to the API. The API queues a build and posts a commit status plus the preview URL back to the PR.
-2. **CLI:** `pi deploy` from a project folder uploads the source tarball (no GitHub required), streams build logs, and prints the URL. It's scriptable, so coding agents can drive it.
+2. **CLI:** `firefly deploy` from a project folder uploads the source tarball (no GitHub required), streams build logs, and prints the URL. It's scriptable, so coding agents can drive it.
 3. **Dashboard:** the same API calls with a UI for status, logs, env vars, tiers and redeploys.
+
+**CLI commands.** The CLI ships on its own for macOS and Linux, installed as `firefly` with a short `pf` alias. `dj pf deploy` can hand off to it.
+
+| Command | What it does |
+| --- | --- |
+| `firefly login` | Sign in through the browser |
+| `firefly init` | Create the project config, detect the framework and write a Dockerfile template |
+| `firefly projects list`, `create` | Manage projects |
+| `firefly upload` | Upload static assets or a bundle |
+| `firefly deploy` | Upload source, stream build logs and print the URL |
+| `firefly preview` | Deploy a branch or PR and print its preview URL |
+| `firefly logs <app> -f` | Follow app logs |
+| `firefly analytics` | Show requests, latency and errors per host |
+| `firefly env list`, `set`, `unset` | Manage env vars for production and previews |
+| `firefly status` | Show the last deployment, URL and image tag |
+| `firefly whoami` | Show the signed-in user |
+| `firefly doctor` | Check local tools and whether the API is reachable |
 
 **URLs**
 
@@ -114,7 +131,7 @@ The home network is never exposed directly: no open ports, and the home IP stays
 
 **Observability**
 
-- Logs: Vector on every node → VictoriaLogs; `pi logs <app> -f` and a live dashboard tail
+- Logs: Vector on every node → VictoriaLogs; `firefly logs <app> -f` and a live dashboard tail
 - Metrics: VictoriaMetrics + kube-state-metrics + node-exporter; per-app CPU/RAM vs tier limit in the dashboard
 - Node health: Pi SoC temperature and throttling from `vcgencmd`; desktop wattage via a smart plug or `turbostat`. Shown as a cluster power and cost panel
 - VictoriaMetrics/Logs chosen over Prometheus/Loki for a much lighter footprint on Pis
@@ -147,13 +164,13 @@ Decided 2 Nov 2026. Revisit any row by changing it here.
 
 Five phases, each ending in a gate you can demo. Phase 1 is the first real payoff: your own portfolio site served from the cluster.
 
-![[Screenshot 2026-11-02 at 2.24.43 PM.png]]
+![Your portfolio site moves home at the end of phase 1](diagrams/your-portfolio-site-moves-home-at-the-end-of-phase.svg)
 
 A phase isn't done until its gate passes on real hardware, including after a node reboot.
 
 **Open questions**
 
-- [ ] Final platform name, and a CLI name that doesn't collide with existing `pi` tools
+- [x] Names: the platform is Phoenix Firefly, and the CLI is `firefly` with a `pf` alias
 - [x] Platform domain: `*.diamondjdev.me`
 - [ ] New desktop specs: RAM and NVMe size set how many large-tier services fit
 - [ ] NixOS on Pi 5: confirm the boot path (nixos-raspberrypi or a UEFI image) before Phase 0
