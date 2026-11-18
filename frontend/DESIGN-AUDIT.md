@@ -58,11 +58,11 @@ The installed `design-taste-frontend/SKILL.md` has no Section 14 or checklist ti
 | Desktop navigation stays on one line | Pass | The 1440px and 768px screenshots show a single-row navigation. |
 | One theme throughout | Pass | Every section remains in the same charcoal system. |
 | Bento occupancy | Pass | No bento grid is used; the four-stage pipeline has exactly four populated positions. |
-| Real raster images | Pass | Four local ImageGen raster assets; no div screenshots or hand-drawn SVG illustrations. |
-| Image generation before fallback | Pass | Built-in ImageGen produced every required asset; Picsum fallback was unnecessary. |
+| Real raster images | N/A | The page ships no raster images. |
+| Image generation before fallback | N/A | The page ships no generated images. |
 | No decorative status devices | Pass | No status dots, locale strips, version labels, or scroll cues. |
 | Motion matches the approved dial | Pass | Intensity remains 2; only controls move, with reduced-motion support. |
-| Images load | Pass | Four raster assets decode successfully in Chrome and respond with HTTP 200. |
+| Images load | N/A | The page ships no raster images. |
 | No horizontal overflow | Pass | Browser assertions pass at 1440, 768, 390, and 320 pixels. |
 | Contrast and readable type | Pass | Inspector reports no contrast, small-text, or body-size findings. |
 | No clipping or text collisions | Pass | Inspector reports no covered-text or clipped-text findings; screenshots reviewed. |
@@ -86,12 +86,12 @@ The production inspector was run with `--allow still-page` because the user appr
 | A home for what you build | Asymmetric split hero | Personal PaaS introduction, large ASCII firefly, immediate action. |
 | Small by intention | Editorial statement | Personal learning scope and the eventual audience. |
 | From source to somewhere | Interactive code stage with process band | Switchable examples and the four planned deployment stages. |
-| The useful parts | Picture essay | Planned app addresses, previews, persistence, logs, and a wing study. |
+| The useful parts | Essay | Planned app addresses, previews, persistence, and logs. |
 | Nothing hidden under the hood | Specification rows | Five named infrastructure choices and their responsibilities. |
-| Built for the learning part | Inset illustrated letter | Maker context paired with a close hardware study. |
+| Built for the learning part | Inset letter | Maker context. |
 | Fair questions | Native disclosure list | Five complete answers about access, workload scope, learning, reliability, and pricing. |
 | Come see how it is built | Typographic action block | A direct route to the blueprint. |
-| Footer | Oversized wordmark | Project name, top link, image credit. |
+| Footer | Oversized wordmark | Project name and top link. |
 
 Pass. Eight content sections, more than four families, and no adjacent sections repeat the same composition. The hero, capabilities essay, and maker letter all pair text and imagery, but differ in scale, alignment, framing, and information density.
 
@@ -148,20 +148,12 @@ Caps applied: default still-page design cap of 7 is retained in the skill score,
 
 Top three remaining limits:
 
-1. Hardware pictures are generated studies, not photographs of the owner's machines. Replace them when actual photography is available.
-2. There is no live platform UI to demonstrate. The selector explains planned workflows and makes no claim to deploy an app.
-3. Mobile navigation keeps the blueprint action rather than a full menu. Every section remains reachable by scrolling.
+1. There is no live platform UI to demonstrate. The selector explains planned workflows and makes no claim to deploy an app.
+2. Mobile navigation keeps the blueprint action rather than a full menu. Every section remains reachable by scrolling.
 
-## Image assets and prompts
+## Assets
 
-All assets were created with the built-in ImageGen tool and copied into `frontend/public/images`. The original generated files remain in the default generated-images directory. No external stock images were used. The footer credits the studies as ImageGen artwork.
-
-| File | Use | Medium |
-| --- | --- | --- |
-| `public/images/wing.png` | Capabilities | Raster ASCII wing specimen. |
-| `public/images/board.png` | Maker note | Generated monochrome circuit-board photograph. |
-
-The generation prompts are recorded in `.taste-skill/asset-prompts.md`. Self-hosted Geist is distributed with its OFL license in `public/fonts/OFL.txt`.
+The page ships no raster images. Self-hosted Geist is distributed with its OFL license in `public/fonts/OFL.txt`.
 
 ## Verification artifacts
 
