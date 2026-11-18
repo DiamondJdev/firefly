@@ -78,11 +78,11 @@ test("ship builds arm64, imports, substitutes the image and forces a fresh rollo
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.log, /docker build --platform linux\/arm64 -t firefly\/landing:abc1234 frontend/);
   assert.match(result.log, /images import -/);
-  assert.match(result.log, /kubectl apply -f -/);
+  assert.match(result.log, /sudo k3s kubectl apply -f -/);
   assert.match(result.log, /image: firefly\/landing:abc1234/);
   assert.doesNotMatch(result.log, /image: IMAGE/);
-  assert.match(result.log, /rollout restart deploy\/landing/);
-  assert.match(result.log, /rollout status deploy\/landing --timeout=120s/);
+  assert.match(result.log, /sudo k3s kubectl rollout restart deploy\/landing/);
+  assert.match(result.log, /sudo k3s kubectl rollout status deploy\/landing --timeout=120s/);
 });
 
 test("ship refuses a wrong architecture before SSH", () => {
