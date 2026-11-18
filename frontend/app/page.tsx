@@ -4,16 +4,16 @@ import IntentCapacity from "./intent-capacity";
 import { AboutRoute, CapabilityJunction, ExplodedStack, InvitationRoute, KerbRoad, Pipeline, RampedQuestions } from "./road-scenes";
 
 const questions = [
-  ["Can I deploy something today?", "Firefly is in development and currently intended for my own projects. Public access is planned for people who find it through my portfolio, after the deployment path and operating limits are proven."],
-  ["What is it designed to host?", "Static sites, single-container web apps, and small multi-container projects. The design includes projects with their own Postgres or Redis container, with persistent storage on always-on machines."],
-  ["Why build a personal PaaS?", "To learn by operating the whole system: a Kubernetes controller in Rust, multi-architecture builds, and machines configured with NixOS. Hosting my own projects gives that learning a practical job."],
+  ["Can I deploy something today?", "Firefly is in development and currently intended for my own projects. Access for invited users is planned after the deployment path, operating limits, and isolation work are proven."],
+  ["What is it designed to host?", "Static sites, single-container web apps, and small multi-container projects. The design includes projects with their own Postgres or Redis container, with persistent storage on a USB drive."],
+  ["Why build a personal PaaS?", "To learn by operating the whole system: a Kubernetes controller in Rust, container image builds, and machines configured with NixOS. Hosting my own projects gives that learning a practical job."],
   ["Is this for production workloads?", "This is a home-hosted learning project. There is no availability guarantee or public service offering. Keep critical workloads on infrastructure with the support and recovery guarantees they need."],
   ["Will there be paid plans?", "There is no public pricing or billing today. Resource tiers are part of the design, but outside users and billing are later decisions."],
 ];
 
 const stages: [string, string][] = [
   ["Source", "A push, a Dockerfile, or the firefly CLI."],
-  ["Build", "BuildKit prepares images for ARM and x86."],
+  ["Build", "BuildKit prepares images for ARM."],
   ["Reconcile", "A Rust operator turns intent into containers."],
   ["Serve", "Traefik routes requests through Cloudflare."],
 ];
@@ -72,7 +72,7 @@ export default function Home() {
           <CapabilityJunction>
             <div className="capability-copy">
               <p>The plan includes an HTTPS address for every app, isolated project namespaces, and preview environments for pull requests.</p>
-              <p>Persistent volumes keep project data on always-on machines. Logs and per-app metrics help explain what is happening.</p>
+              <p>Persistent volumes keep project data on a USB drive attached to the control node. Logs and per-app metrics help explain what is happening.</p>
               <a className="text-link" href="/blueprint.txt">See the deployment design <span aria-hidden="true">↗</span></a>
             </div>
           </CapabilityJunction>
@@ -93,7 +93,7 @@ export default function Home() {
               <h2 id="about-title">Built for the<br />learning part.</h2>
               <p>I wanted a place to host my projects. Building the platform became a project of its own.</p>
               <p>Firefly gives me a reason to work through the uncomfortable parts: deployments, storage, recovery, and keeping a cluster running at home.</p>
-              <p>For now, it is personal. Eventually, I want to open the door to people who find it through my portfolio.</p>
+              <p>For now, it is personal. Eventually, I want to open the door to invited users.</p>
               <a className="text-link" href="https://github.com/diamondjdev">Find me on GitHub <span aria-hidden="true">↗</span></a>
             </div>
           </div>

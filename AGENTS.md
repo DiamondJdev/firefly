@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Phoenix Firefly is a self-hosted platform-as-a-service: push a Dockerfile, get a live HTTPS app at `<app>.diamondjdev.me`. The target is a k3s cluster of five Raspberry Pi 5s and two desktops, defined in one NixOS flake, with a Rust operator and a TypeScript API, dashboard and CLI. v1 hosts only the owner's projects.
+Phoenix Firefly is a self-hosted platform-as-a-service: push a Dockerfile, get a live HTTPS app at `<app>.diamondjdev.me`. The target is a k3s cluster of five Raspberry Pi 5s, defined in one NixOS flake, with a Rust operator and a TypeScript API, dashboard and CLI. v1 hosts only the owner's projects; invited users wait for the v1.5 hardening gate.
 
 The project is in its design phase. What runs today:
 

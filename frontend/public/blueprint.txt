@@ -12,10 +12,9 @@ Traefik routes requests through Cloudflare Tunnel, without inbound ports open at
 
 HARDWARE
 
-The proposed cluster consists of five Raspberry Pi 5 computers with 8GB each,
-one always-on desktop, and a second desktop that contributes when available.
-The machines run NixOS and k3s. State and persistent data stay on always-on machines.
-The build system targets ARM64 and AMD64.
+The proposed cluster consists of five Raspberry Pi 5 computers with 8GB each.
+The machines run NixOS and k3s. Persistent data stays on USB drives on the control node.
+One Pi builds ARM64 images. An always-on desktop and AMD64 builds may come later.
 
 APPLICATIONS
 
@@ -35,7 +34,7 @@ Visibility: dashboard, logs, metrics, power and temperature views.
 
 PUBLIC ACCESS
 
-Personal projects are the immediate scope. Portfolio visitors may get access later.
+Personal projects are the immediate scope. Invited users may get access later.
 Outside users, billing, stronger tenant isolation, and custom domains are later decisions.
 There is no public pricing, signup, availability promise, or production service guarantee.
 
