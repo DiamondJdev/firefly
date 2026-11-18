@@ -18,12 +18,11 @@ Read the doc for the area you touch before changing it. When two docs conflict, 
 | `README.md`, section "Single-Pi workflow" | Secrets, Wi-Fi image, deploys, tunnel, public URLs, test commands | Current. The source of truth for what runs. |
 | `docs/architecture.md` | Target design, hardware roles, build pipeline, decision log, open questions | Target. Wins over every doc below. |
 | Rest of `README.md` | Public pitch of the target design | Target |
-| `docs/CLI.md` | CLI command surface | Older draft. Only the command list is current; its student/school model, domains and Loki/Prometheus stack are superseded by architecture.md. |
 | `docs/superpowers/plans/*.md` | Step-by-step implementation plans | History and intent. A plan is not proof the work landed; check the code. |
 | `docs/feedback.md`, `docs/feedback-resolutions.md` | November 2026 review and its ranked fix list | Snapshot and plan. Check the code for what landed. |
 | `frontend/README.md`, `frontend/DESIGN-AUDIT.md` | Landing page commands and design rules | Current for `frontend/` |
 
-Naming: the CLI is `firefly`, with a `pf` alias. `pi` in architecture.md is stale.
+Naming: the CLI is `firefly`, with a `pf` alias.
 
 ## Where things live
 

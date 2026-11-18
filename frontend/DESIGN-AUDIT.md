@@ -2,7 +2,7 @@
 
 Open http://127.0.0.1:3000 to inspect the production build.
 
-Status: implementation and verification complete. Nine content sections, one footer, one Next.js route. No public deployment or backend integration was performed.
+Status: implementation and verification complete. Eight content sections, one footer, one Next.js route. No public deployment or backend integration was performed.
 
 ## Design direction
 
@@ -31,11 +31,11 @@ The installed `design-taste-frontend/SKILL.md` has no Section 14 or checklist ti
 | Check | Result | Justification |
 | --- | --- | --- |
 | Next.js landing page | Pass | One App Router page at `/`, built successfully with Next.js 16.4.4. |
-| At least eight sections | Pass | Nine semantic sections, excluding the footer. |
+| At least eight sections | Pass | Eight semantic sections, excluding the footer. |
 | At least four layout families | Pass | Split hero, editorial statement, interactive code stage, image field, specification rows, inset letter, disclosures, and typographic CTA. |
 | Headings use at most two lines | Pass | Text-line checks pass for every h1, h2, and h3, in the initial state at the tested widths; all three selector states were also exercised. |
 | Clear first-screen title | Pass | The headline and adjacent sentence identify a home-hosted personal PaaS. |
-| One h1 and section headings | Pass | Exactly one h1; each of the nine sections has its own heading. |
+| One h1 and section headings | Pass | Exactly one h1; each of the eight sections has its own heading. |
 | Equal outer margins | Pass | All sections use the same responsive `frame` gutter. |
 | No accidental empty half-sections | Pass | Text is paired with an image, a statement, controls, or supporting content. |
 | No excessive blank stretches | Pass | The production inspector reports no blank-gap or empty-screen findings. |
@@ -87,14 +87,13 @@ The production inspector was run with `--allow still-page` because the user appr
 | Small by intention | Editorial statement | Personal learning scope and the eventual audience. |
 | From source to somewhere | Interactive code stage with process band | Switchable examples and the four planned deployment stages. |
 | The useful parts | Picture essay | Planned app addresses, previews, persistence, logs, and a wing study. |
-| A cloud with a street address | Wide image field with specification strip | Illustrative cluster photograph and the proposed hardware inventory. |
 | Nothing hidden under the hood | Specification rows | Five named infrastructure choices and their responsibilities. |
 | Built for the learning part | Inset illustrated letter | Maker context paired with a close hardware study. |
 | Fair questions | Native disclosure list | Five complete answers about access, workload scope, learning, reliability, and pricing. |
 | Come see how it is built | Typographic action block | A direct route to the blueprint. |
 | Footer | Oversized wordmark | Project name, top link, image credit. |
 
-Pass. Nine content sections, more than four families, and no adjacent sections repeat the same composition. The hero, capabilities essay, and maker letter all pair text and imagery, but differ in scale, alignment, framing, and information density.
+Pass. Eight content sections, more than four families, and no adjacent sections repeat the same composition. The hero, capabilities essay, and maker letter all pair text and imagery, but differ in scale, alignment, framing, and information density.
 
 ## Hero discipline audit
 
@@ -159,7 +158,6 @@ All assets were created with the built-in ImageGen tool and copied into `fronten
 
 | File | Use | Medium |
 | --- | --- | --- |
-| `public/images/firefly.png` | Hero | Raster ASCII insect with a pale chartreuse lantern. |
 | `public/images/wing.png` | Capabilities | Raster ASCII wing specimen. |
 | `public/images/board.png` | Maker note | Generated monochrome circuit-board photograph. |
 

@@ -5,7 +5,7 @@ Design blueprint. The platform is in development; this is not a public hosting s
 
 DEPLOYMENT
 
-The planned inputs are git push, the pi CLI, and a web dashboard.
+The planned inputs are git push, the firefly CLI, and a web dashboard.
 BuildKit builds container images. Zot stores the images on the local network.
 A Rust controller using kube-rs reconciles App resources into Kubernetes workloads.
 Traefik routes requests through Cloudflare Tunnel, without inbound ports open at home.
@@ -28,7 +28,7 @@ Logs, per-app metrics, node temperatures, and power usage are planned observabil
 BUILD ORDER
 
 Foundation: NixOS configuration, k3s, tunnel, registry.
-Deploy core: Rust operator, TypeScript API, pi CLI, image builds, app addresses.
+Deploy core: Rust operator, TypeScript API, firefly CLI, image builds, app addresses.
 Previews: GitHub integration, preview lifecycle, sleeping previews.
 Projects and data: multi-container services, persistent volumes, backups, resource tiers.
 Visibility: dashboard, logs, metrics, power and temperature views.

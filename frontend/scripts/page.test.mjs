@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 const origin = process.env.TEST_URL || "http://127.0.0.1:3000";
 
-test("the public page has nine sections, valid internal links, and no forbidden dashes", async () => {
+test("the public page has eight sections, valid internal links, and no forbidden dashes", async () => {
   const response = await fetch(origin);
   assert.equal(response.status, 200);
   const html = await response.text();

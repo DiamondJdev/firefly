@@ -195,7 +195,7 @@ The Pis are ARM and the desktops are x86. Instead of building every app twice (o
 
 <img src="docs/diagrams/one-compile-serves-both-architectures-pis-build-on.svg" alt="One compile serves both architectures; Pis build only when no desktop is up" width="100%">
 
-`pi init` writes a Dockerfile template that already follows the fast pattern, so the highlighted path is the default.
+`firefly init` writes a Dockerfile template that already follows the fast pattern, so the highlighted path is the default.
 
 ---
 
@@ -204,7 +204,7 @@ The Pis are ARM and the desktops are x86. Instead of building every app twice (o
 Projects can bring their own database. Describe the services in a compose-style file you can also run locally:
 
 ```yaml
-# pi.compose.yml
+# firefly.compose.yml
 services:
   web:
     build: ./Dockerfile
@@ -229,7 +229,7 @@ volumes:
 
 ### Size tiers
 
-| Tier | Memory | CPU | Good for |
+| Tier | Memory | CPU request | Good for |
 |---|---:|---:|---|
 | 🟢 nano | 128 MB | 0.1 | Static sites, tiny APIs |
 | 🟡 small | 512 MB | 0.5 | Node/Python apps, Redis |
@@ -274,7 +274,7 @@ Every pull request gets its own URL and its own fresh database. Idle previews sl
 ## Repository layout (planned)
 
 ```
-pipaas/
+firefly/
 ├── nix/          # flake: every node's OS, k3s, secrets keys
 ├── operator/     # Rust · kube-rs controller for the App resource
 ├── waker/        # Rust · wakes sleeping previews on request

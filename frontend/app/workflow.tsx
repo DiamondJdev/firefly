@@ -6,7 +6,7 @@ const examples = [
   {
     name: "CLI",
     title: "A deploy from your terminal",
-    description: "The planned pi CLI uploads source, streams build output, and returns your app's URL. Follow its logs from the same terminal.",
+    description: "The planned firefly CLI uploads source, streams build output, and returns your app's URL. Follow its logs from the same terminal.",
   },
   {
     name: "Git",
