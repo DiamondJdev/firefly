@@ -1,11 +1,11 @@
 # Phoenix Firefly
 
-> **Push a Dockerfile, get a live HTTPS app.** A self-hosted platform-as-a-service running on a stack of Raspberry Pis and two desktops in my home.
+> **Push a Dockerfile, get a live HTTPS app.** A self-hosted platform-as-a-service running on a stack of Raspberry Pis in my home.
 
 ![status](https://img.shields.io/badge/status-design%20phase-orange) ![k3s](https://img.shields.io/badge/orchestration-k3s-326CE5) ![Rust](https://img.shields.io/badge/operator-Rust%20%2B%20kube--rs-B7410E) ![TypeScript](https://img.shields.io/badge/API%20%26%20dashboard-TypeScript-3178C6)
 ![NixOS](https://img.shields.io/badge/nodes-NixOS%20flake-5277C3) ![Cloudflare](https://img.shields.io/badge/ingress-Cloudflare%20Tunnel-F38020)
 
-Phoenix Firefly hosts small web projects cheaply and quickly, like Heroku or Vercel, but on hardware I own. Today it's just for my personal projects. It's designed so I can later open it to people who find me through my portfolio.
+Phoenix Firefly hosts small web projects cheaply and quickly, like Heroku or Vercel, but on hardware I own. Today it's just for my personal projects. Invited users can come later, once the isolation work is done.
 
 ---
 
@@ -142,7 +142,7 @@ Run the script regression checks with `node --test deploy/scripts.test.mjs`. Fro
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | **How you deploy**     | `git push`, the `pf` CLI, or the web dashboard                                                                    |
 | **What you get**       | `myapp.<domain>` over HTTPS, plus a preview URL for every pull request                                            |
-| **What it runs on**    | 5× Raspberry Pi 5 (8GB) + an always-on desktop + a gaming desktop that pitches in when it's free                  |
+| **What it runs on**    | 5× Raspberry Pi 5 (8GB) + 2× 1TB USB hard drives                                                                  |
 | **Open ports at home** | **Zero.** All traffic arrives through a Cloudflare Tunnel                                                         |
 
 ---
@@ -157,19 +157,15 @@ Every request comes in through Cloudflare. Every deploy, no matter where it star
 
 ## The hardware
 
-Each machine gets the job that fits how reliably it stays on. **Nothing that holds data or votes on cluster state runs on a machine that might switch off.**
-
-<img src="docs/diagrams/only-always-on-machines-hold-state-the-main-deskto.svg" alt="Only always-on machines hold state; the main desktop just builds" width="100%">
+Each Pi gets one job. **Anything worth keeping lives on a USB hard drive, not an SD card.**
 
 | Node | Arch | Job | Serves apps? |
 |---|---|---|:---:|
-| Pi 1–3 | arm64 | Control plane (3-node etcd, survives one failure) + light apps | ✅ |
-| Pi 4 | arm64 | Worker with NVMe for database containers | ✅ |
-| Pi 5 | arm64 | Dedicated native arm64 builder | ❌ |
-| New desktop | x86 | Heavy worker, main builder, image registry, databases | ✅ |
-| Main desktop | x86 | Extra build power when booted into NixOS | ❌ |
+| Pi 1 | arm64 | Only k3s server, Ethernet, tunnel, image registry, databases, backups | Stateful services |
+| Pi 2 to 4 | arm64 | Stateless workers over Wi-Fi | ✅ |
+| Pi 5 | arm64 | Dedicated native image builder | ❌ |
 
-The whole cluster is defined in **one NixOS flake**. Every node can be rebuilt from scratch with one command.
+An always-on desktop can take over Pi 1's job later. The whole cluster is defined in **one NixOS flake**, so every node can be rebuilt from scratch with one command.
 
 ---
 
@@ -189,13 +185,9 @@ pf env set API_KEY=...
 
 ---
 
-## Building once for two CPU architectures
+## Building images
 
-The Pis are ARM and the desktops are x86. Instead of building every app twice (or slowly emulating ARM), the desktop **cross-compiles once** for both.
-
-<img src="docs/diagrams/one-compile-serves-both-architectures-pis-build-on.svg" alt="One compile serves both architectures; Pis build only when no desktop is up" width="100%">
-
-`firefly init` writes a Dockerfile template that already follows the fast pattern, so the highlighted path is the default.
+Pi 5 builds every image natively for arm64, away from the machine that holds the control plane and data. `firefly init` writes a Dockerfile template for your stack. Multi-arch builds wait until an always-on desktop joins the cluster.
 
 ---
 
@@ -224,7 +216,7 @@ volumes:
 <img src="docs/diagrams/each-project-gets-its-own-namespace-only-one-servi.svg" alt="Each project gets its own namespace; only one service is public" width="100%">
 
 - Each project gets its **own namespace**. Other projects can't reach in.
-- Services with volumes land only on **NVMe-backed nodes** and are backed up nightly to the NAS.
+- Services with volumes land only on **Pi 1's USB drive** and are backed up nightly to the second drive.
 - Outbound internet is open, so external databases always work too.
 
 ### Size tiers
@@ -278,11 +270,11 @@ firefly/
 ├── nix/          # flake: every node's OS, k3s, secrets keys
 ├── operator/     # Rust · kube-rs controller for the App resource
 ├── waker/        # Rust · wakes sleeping previews on request
-├── builder/      # Rust · build routing (cross-compile / fallback / deferred)
+├── builder/      # Rust · build jobs on the arm64 builder
 ├── api/          # TypeScript · REST API + GitHub App webhooks
 ├── dashboard/    # TypeScript · web UI
 ├── cli/          # TypeScript · the `pf` command
-└── templates/    # cross-compile Dockerfiles per stack
+└── templates/    # Dockerfile templates per stack
 ```
 
 ---
@@ -291,4 +283,4 @@ firefly/
 
 - **Cheap.** Hardware I already own, and the Pis sip power.
 - **Fast.** One push to a live URL, with previews on every PR.
-- **Learning.** A real Kubernetes operator in Rust, a multi-arch build system, and a cluster defined in NixOS.
+- **Learning.** A real Kubernetes operator in Rust, an image build pipeline, and a cluster defined in NixOS.
