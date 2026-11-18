@@ -20,7 +20,7 @@ Read the doc for the area you touch before changing it. When two docs conflict, 
 | Rest of `README.md` | Public pitch of the target design | Target |
 | `docs/CLI.md` | CLI command surface | Older draft. Only the command list is current; its student/school model, domains and Loki/Prometheus stack are superseded by architecture.md. |
 | `docs/superpowers/plans/*.md` | Step-by-step implementation plans | History and intent. A plan is not proof the work landed; check the code. |
-| `docs/feedback-resolutions.md` | Ranked fix list for the November 2026 review | Plan. Check the code for what landed. |
+| `docs/feedback.md`, `docs/feedback-resolutions.md` | November 2026 review and its ranked fix list | Snapshot and plan. Check the code for what landed. |
 | `frontend/README.md`, `frontend/DESIGN-AUDIT.md` | Landing page commands and design rules | Current for `frontend/` |
 
 Naming: the CLI is `firefly`, with a `pf` alias. `pi` in architecture.md is stale.
