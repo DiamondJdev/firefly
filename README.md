@@ -231,7 +231,7 @@ volumes:
 
 ## Preview deployments
 
-Every pull request gets its own URL and its own fresh database. Idle previews sleep so they don't eat Pi memory.
+Every pull request gets its own URL and its own fresh database. Idle previews sleep so they don't eat Pi memory, and at most two preview databases stay awake at once.
 
 <img src="docs/diagrams/idle-previews-sleep-and-every-preview-is-gone-with.svg" alt="Idle previews sleep, and every preview is gone within 7 days" width="100%">
 

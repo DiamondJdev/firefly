@@ -34,7 +34,7 @@ Visibility: dashboard, logs, metrics, power and temperature views.
 
 PUBLIC ACCESS
 
-Personal projects are the immediate scope. Portfolio visitors may get access later.
+Personal projects are the immediate scope. Invited users may get access later.
 Outside users, billing, stronger tenant isolation, and custom domains are later decisions.
 There is no public pricing, signup, availability promise, or production service guarantee.
 

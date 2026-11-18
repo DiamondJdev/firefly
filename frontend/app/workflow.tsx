@@ -66,7 +66,7 @@ export default function Workflow() {
             {"builder@firefly:~ $ "}<span className="terminal-green">pi</span>{" deploy\n\n"}
             <span className="terminal-tree">{"├ "}</span>{"Project  "}<span className="terminal-green">{"personal-site\n"}</span>
             <span className="terminal-tree">{"├ "}</span>{"Source   "}<span className="terminal-green">{"Dockerfile\n"}</span>
-            <span className="terminal-tree">{"└ "}</span>{"Target   "}<span className="terminal-green">{"ARM64 + AMD64\n\n"}</span>
+            <span className="terminal-tree">{"└ "}</span>{"Target   "}<span className="terminal-green">{"ARM64\n\n"}</span>
             {"Preparing project build...\n"}
             <span className="terminal-progress" aria-label="Example build progress: 25 percent"><span className="terminal-green">{"▮".repeat(6)}</span><span className="terminal-muted">{"▯".repeat(18)}</span></span>
           </code></pre>

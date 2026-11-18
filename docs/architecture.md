@@ -7,7 +7,7 @@ Phoenix Firefly is a self-hosted PaaS on five Raspberry Pi 5s. It turns a Docker
 **Goals**
 
 - Deploy a personal project in under a minute from `git push`, the CLI or the dashboard
-- Give each Pi one clear job: Pi #1 runs the platform, Pis #2 to #4 serve apps, and Pi #5 builds
+- Give each Pi one clear job: Pi #1 holds the control plane and data, Pis #2 to #4 serve apps, and Pi #5 builds
 - Be a strong portfolio piece: a Rust Kubernetes operator, a TS control plane, and a NixOS-defined cluster
 
 **v1 scope:** static sites, single-container apps and multi-container projects (compose-style, including their own database containers), auto subdomains, per-branch previews.
@@ -21,12 +21,13 @@ The design fits the hardware on hand: five 8GB Pi 5s on SD cards, one Ethernet c
 | Node | Arch | Role | k3s labels / taints | Serves apps? |
 | --- | --- | --- | --- | --- |
 | Pi #1 (`firefly-pi`) | arm64 | Only k3s server (SQLite, no etcd), the Ethernet cable, `cloudflared`, Zot registry, all volumes on HDD 1, backups on HDD 2 | `role=control`, `storage=hdd` | Stateful services only |
-| Pi #2 to #4 | arm64 | Stateless k3s agents over Wi-Fi | `serve=true` | Yes |
+| Pi #2 to #4 | arm64 | Stateless k3s agents over Wi-Fi, including the API, dashboard, operator and waker | `serve=true` | Yes |
 | Pi #5 | arm64 | Dedicated native builder | `role=builder`, taint `builder:NoSchedule` | No |
 
-- **Storage:** SD cards hold the OS only. The k3s data directory, the registry and every volume go on HDD 1.
+- **Storage:** on Pi #1, the SD card holds the OS only. The k3s data directory, the registry and every volume go on HDD 1. Pis #2 to #5 have no drive, so their k3s agent data, container images, writable layers, `emptyDir` volumes and logs stay on their SD cards. All of that can be replaced: when a card wears out, reflash it and rejoin the node.
+- **Disk load:** SQLite, every database, Zot and the backup job share HDD 1, a spinning disk. Restic runs at low I/O priority during a quiet hour. The Phase 3 gate includes a backup running alongside an image push with the API still responding. If that stalls, the k3s datastore moves to a small USB SSD.
 - **Failure:** Pi #1 is a single point of failure. If it or HDD 1 dies, the platform is down until it is rebuilt and restored from HDD 2. That is acceptable for an owner-only v1.
-- **Memory:** the single node used 2.3GB of 8GB with almost nothing deployed. Plan on about 4.5GB for workloads on Pi #1 (an estimate), which fits one large database and one small service.
+- **Memory:** the single node used 2.3GB of 8GB with almost nothing deployed. Plan on about 4.5GB for workloads on Pi #1. The estimated split is 1GB for Zot, VictoriaMetrics and VictoriaLogs, 2.5GB for one large database and one small service, and 1GB for two small preview databases.
 - **Network:** a small switch and cables (an estimated $25 to $35) would make the agents sturdier, but the design does not depend on them.
 - **Page size:** the Pi 5 kernel uses 16K pages. Some arm64 binaries whose jemalloc was built for 4K pages abort at start, so images must be tested on the cluster. The `linux_rpi4` (bcm2711) kernel is in the nixos-raspberrypi binary cache and is the candidate 4K option. It has not been boot-tested on a Pi 5.
 
@@ -45,7 +46,7 @@ The operator is the heart of the system: every front door converges on an `App` 
 Pi #5 builds every image natively for arm64. App builds run arbitrary code, so they stay off Pi #1, which holds the control plane, databases and tunnel credentials.
 
 - **Builder:** BuildKit runs in k3s through the buildx Kubernetes driver, pinned to `role=builder`.
-- **Cache:** `--cache-to/--cache-from type=registry` against the Zot registry on Pi #1, so the cache avoids Pi #5's SD card and images never leave the LAN.
+- **Cache:** `--cache-to/--cache-from type=registry` against the Zot registry on Pi #1, so the cache survives a Pi #5 card swap and images never leave the LAN. BuildKit still unpacks layers and writes build snapshots to Pi #5's SD card, the heaviest write load in the cluster. Expect that card to wear out first. Replacing it loses only local build state.
 - **Template:** `firefly init` writes a Dockerfile template per stack (static, Node, Python, Rust).
 
 **Deferred: multi-arch builds.** No amd64 node serves apps yet, so a second architecture adds work without a use. The target below returns when an always-on desktop joins.
@@ -66,7 +67,7 @@ A project is one `App` custom resource holding one or more services. Multi-conta
 
 **Supported compose subset (v1):** `build` (Dockerfile path), `image`, `environment`, `env_file`, `ports` (only to mark the public port), `volumes` (named volumes only), `depends_on` (start order), `healthcheck`. Anything else fails validation with a clear error rather than being silently ignored.
 
-**Backups:** a nightly restic job snapshots every PVC and the k3s datastore to HDD 2. Databases get a pre-backup dump hook (`pg_dump`, `redis-cli SAVE`) so snapshots are consistent. Both drives sit in the same house, so there is no offsite copy.
+**Backups:** a nightly restic job snapshots every PVC, Zot's storage and the k3s `server/` directory to HDD 2. That directory holds the datastore, server token, certificates and `--secrets-encryption` key, and a restore needs all of them. Databases get a pre-backup dump hook (`pg_dump`, `redis-cli SAVE`), and the k3s SQLite files are copied with `sqlite3 .backup`, so snapshots are consistent. Keep a copy of the restic password off the Pi, because a rebuilt Pi needs it to read the backups. Both drives sit in the same house, so there is no offsite copy.
 
 **Size tiers.** Memory requests equal limits, so the scheduler packs predictably. CPU is a request with no limit, so a Node app can burst through its cold start.
 
@@ -113,6 +114,7 @@ Three front doors, one backend. The git push, CLI and dashboard paths all end in
 **Preview lifecycle**
 
 - Created on PR open or push; gets fresh copies of any database services (empty or seeded), never production data
+- Preview databases run at the small tier whatever their production tier. Their volumes live on Pi #1, so at most two stay awake at once, and a third waits until one sleeps or is deleted
 - Sleeps after an idle window: the whole project scales to zero together, so an app never wakes without its database
 - Wakes on request: a small Rust "waker" in front of sleeping hostnames holds the request, scales the project up, and forwards when it's healthy
 - Deleted when the PR closes, or after a **hard 7-day time-to-live**, whichever comes first (PVCs included)
@@ -125,11 +127,12 @@ The home network is never exposed directly: no open ports, and the home IP stays
 
 - `cloudflared` runs as a NixOS service on Pi #1 and only dials out
 - The consumer router has no cluster VLAN, so pods share the home LAN. That is acceptable only while every workload is Cameron's own
+- Pi #1's firewall allows only SSH from the LAN today (`nix/pi.nix`). Before agents join, every node must accept 8472/udp and 10250/tcp from the other nodes, and Pi #1 must also accept 6443/tcp and Zot's port from them. Reserve each node's address on the router so these rules can name it
 - Admin access to nodes over Tailscale; SSH keys only, defined in the NixOS flake
 
 **Access:** the dashboard and API sit behind Cloudflare Access (GitHub login, allow-list of 1). The webhook endpoint is the only bypass, verified by the GitHub App's webhook signature. The CLI authenticates with a Cloudflare Access service token.
 
-**Secrets:** stored as Kubernetes Secrets with k3s `--secrets-encryption` enabled. k3s generates the encryption key on the server, so it never enters git. Env vars are set through the CLI and dashboard and are never baked into images.
+**Secrets:** stored as Kubernetes Secrets with k3s `--secrets-encryption` enabled. k3s generates the encryption key on the server, so it never enters git, and the nightly backup keeps a copy on HDD 2. Env vars are set through the CLI and dashboard and are never baked into images.
 
 **Observability**
 
@@ -186,6 +189,7 @@ A phase isn't done until its gate passes on real hardware, including after a nod
 - [x] NixOS on Pi 5: boots through nixos-raspberrypi
 - [ ] When can an always-on desktop join, and how much RAM will it have?
 - [ ] Can Pi #1 power both USB drives, or do they need a powered hub?
+- [ ] Does Pi #5 need a USB SSD for BuildKit, or is replacing SD cards cheap enough?
 - [ ] Page size: do the images we rely on run on 16K pages, and does the bcm2711 kernel boot on a Pi 5?
 - [ ] Seeding preview databases: empty, a seed script in the repo, or a sanitized snapshot
 - [ ] Does your ISP plan allow hosting? The tunnel avoids open ports, but check the terms of service before opening to outside users
