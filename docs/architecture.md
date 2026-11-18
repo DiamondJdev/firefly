@@ -36,7 +36,7 @@ k3s does scheduling. Cameron's code is the PaaS layer on top: a TS API, dashboar
 
 ![[Screenshot 2026-11-02 at 2.25.34 PM.png]]
 
-The operator is the heart of the system: every front door converges on an `App` resource, and the operator creates the Kubernetes objects, then deploys onto app pods. k3s components (Traefik, CoreDNS, local-path provisioner) are used as bundled; ServiceLB is disabled since the tunnel handles ingress.
+The operator is the heart of the system: every front door converges on an `App` resource, and the operator creates the Kubernetes objects, then deploys onto app pods. k3s components (Traefik, CoreDNS, local-path provisioner) are used as bundled; ServiceLB stays enabled because the tunnel reaches Traefik through it at `localhost:80`.
 
 ## Build pipeline
 

@@ -49,7 +49,8 @@
     role = "server";
     # Pin IPv4: if IPv6 comes up first at boot, k3s otherwise creates a permanent IPv6-only cluster.
     extraFlags = [
-      "--write-kubeconfig-mode=0644"
+      "--write-kubeconfig-mode=0600"
+      "--secrets-encryption"
       "--cluster-cidr=10.42.0.0/16"
       "--service-cidr=10.43.0.0/16"
     ];
@@ -60,6 +61,14 @@
     "cgroup_enable=memory"
     "cgroup_memory=1"
   ];
+  # 29GB SD card: compressed RAM for swap, so no swap writes, and a store that cleans itself.
+  zramSwap.enable = true;
+  nix.gc = {
+    automatic = true;
+    options = "--delete-older-than 14d";
+  };
+  nix.settings.auto-optimise-store = true;
+
   # k3s API and apps reachable only over Tailscale; cni0 lets pods reach the API. LAN gets SSH only.
   networking.firewall.trustedInterfaces = [
     "tailscale0"

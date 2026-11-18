@@ -54,6 +54,7 @@ Live infrastructure:
 
 - Ask first before running anything that reaches `firefly-pi` or Cloudflare: `nix/deploy.sh`, `deploy/ship.sh`, `ssh firefly-pi`, `cloudflared tunnel ...`, `sops updatekeys`. Approval covers one run.
 - Never flash `firefly-pi`. Only `bash nix/build-image.sh` makes a flashable image, from `firefly-pi-image`. A fresh card can't decrypt the tunnel secret, and sops-nix then installs no secrets, Wi-Fi included.
+- The Pi's kubeconfig is root-only. Use `sudo k3s kubectl` there.
 - Deploy `firefly-pi` to one Pi only. A second Pi on the same tunnel takes a share of public traffic on a separate cluster.
 - Before deploying to a reflashed card, rewrap both secret files for its new host key (README, "Before the first deploy to a reflashed card").
 
