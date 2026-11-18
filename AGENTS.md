@@ -6,7 +6,6 @@ The project is in its design phase. What runs today:
 
 - One Pi 5 (`firefly-pi`) running NixOS, single-node k3s, Tailscale, and a Cloudflare Tunnel that sends every `*.diamondjdev.me` request to Traefik.
 - The landing page (`frontend/`), shipped to that Pi as an arm64 image.
-- A NestJS backend template (`backend/`), not deployed. It is the seed for the platform's REST API and GitHub webhooks.
 
 Everything else in the README and `docs/architecture.md` (operator, waker, builder, registry, previews, dashboard, CLI) is planned, not built.
 
@@ -21,7 +20,7 @@ Read the doc for the area you touch before changing it. When two docs conflict, 
 | Rest of `README.md` | Public pitch of the target design | Target |
 | `docs/CLI.md` | CLI command surface | Older draft. Only the command list is current; its student/school model, domains and Loki/Prometheus stack are superseded by architecture.md. |
 | `docs/superpowers/plans/*.md` | Step-by-step implementation plans | History and intent. A plan is not proof the work landed; check the code. |
-| `backend/README.md`, `backend/LOGGING.md` | Backend template features, API, logging service | Template-era. It says SQLite and port 8080; the code uses Postgres and `PORT` (default 5200). |
+| `docs/feedback.md`, `docs/feedback-resolutions.md` | November 2026 review and its ranked fix list | Snapshot and plan. Check the code for what landed. |
 | `frontend/README.md`, `frontend/DESIGN-AUDIT.md` | Landing page commands and design rules | Current for `frontend/` |
 
 Naming: the CLI is `firefly`, with a `pf` alias. `pi` in architecture.md is stale.
@@ -39,7 +38,7 @@ Naming: the CLI is `firefly`, with a `pf` alias. `pi` in architecture.md is stal
 | `nix/tests/` | Python unittest (runs in the `firefly-nix` builder container) and Node script tests | See README "Reusable Wi-Fi image" |
 | `deploy/ship.sh`, `deploy/landing.yaml` | Build an arm64 image, import it into the Pi's containerd, apply the manifest | `node --test deploy/scripts.test.mjs nix/tests/build-image.test.mjs` (repo root) |
 | `frontend/app/` | Next.js 16 landing page, one route (`page.tsx`), npm | `npm run typecheck`, `npm test`, `npm run build` |
-| `backend/src/modules/` | NestJS 11: `auth`, `users`, `roles`, `jwt`, `cache` (Upstash), `db` (TypeORM services), `core` (entities, guards, logging, health) | `pnpm test`; `pnpm test:e2e` needs Postgres from `docker compose up postgres` |
+| `.github/workflows/ci.yml` | CI on PRs and `main`: frontend typecheck, build and tests; deploy and Nix script tests | |
 | `CLI/` | Empty placeholder for the `firefly` CLI | |
 
 The planned `operator/`, `waker/`, `builder/`, `api/`, `dashboard/` and `templates/` directories do not exist yet.
@@ -47,7 +46,6 @@ The planned `operator/`, `waker/`, `builder/`, `api/`, `dashboard/` and `templat
 Test notes:
 
 - `frontend/scripts/page.test.mjs` fetches a running server at `http://127.0.0.1:3000` (override with `TEST_URL`). Start `npm run dev` or `npm start` first.
-- `backend/Dockerfile` copies `package-lock.json`, but the backend only has `pnpm-lock.yaml`, so the image build currently fails. `docs/superpowers/plans/2026-11-13-github-actions-ci.md` plans the fix.
 - Run Nix evaluation and image tests inside the `firefly-nix` builder container, as the README shows. The Mac host has no Linux Nix.
 
 ## What not to do
@@ -77,7 +75,6 @@ Apps and URLs:
 
 Code:
 
-- `pnpm lint` in `backend/` runs `eslint --fix` and rewrites files. Expect the diff, or call `eslint` without `--fix` to check only.
 - Keep the authored frontend free of em and en dashes; `page.test.mjs` fails on them.
 - Don't treat architecture.md features as existing. Check the tree first.
 
