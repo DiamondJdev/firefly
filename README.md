@@ -38,7 +38,14 @@ bash nix/build-image.sh
 
 The command builds the credential-free NixOS image using the locked inputs, then adds only the dedicated Wi-Fi identity to `/var/lib/firefly/wifi.agekey` in a private copy. The identity is root-owned with mode `0600`, in a `0700` directory. Preparation checks that this identity alone decrypts a Wi-Fi-only document, verifies the injected key and filesystem, and refuses tracked paths or an existing output.
 
-Flash `.private/firefly-wifi.img.zst` with Raspberry Pi Imager's **Use custom** option. The same unchanged image can be flashed onto compatible Pi 5 cards. On first boot, sops-nix uses the installed identity to decrypt Wi-Fi without Ethernet. Each Pi generates its own SSH host keys; no SSH host identity, Tailscale login or k3s state is copied into the image.
+Flash `.private/firefly-wifi.img.zst` from the Mac, replacing `diskN` with the card from `diskutil list external physical`:
+
+```bash
+diskutil unmountDisk /dev/diskN
+zstd -dc .private/firefly-wifi.img.zst | sudo dd of=/dev/rdiskN bs=4m
+```
+
+Raspberry Pi Imager's **Use custom** option wrote a blank card from this file, and the Pi then fell back to USB boot. Check that `diskutil list` shows a `FIRMWARE` partition before booting. The same unchanged image can be flashed onto compatible Pi 5 cards. On first boot, sops-nix uses the installed identity to decrypt Wi-Fi without Ethernet. Each Pi generates its own SSH host keys; no SSH host identity, Tailscale login or k3s state is copied into the image.
 
 The private image contains everything needed to recover the Wi-Fi password. Do not publish it or upload it as a CI artifact. `.private/`, `*.agekey`, `*.img` and `*.img.zst` are ignored by Git; never force-add them. The ordinary Nix build output has no bootstrap private key and is not sufficient for cable-free Wi-Fi setup. Do not use the older `nix/nixos-image-rpi5-kernel.img.zst` left from the initial plaintext configuration.
 
