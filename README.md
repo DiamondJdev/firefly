@@ -68,7 +68,7 @@ bash nix/build-image.sh
 
 `age-keygen` refuses to overwrite an existing identity. Back up a replacement before using its image. If an image is exposed, rotate the Wi-Fi password as well as the image identity, then rebuild and reprovision affected cards. Removing a recipient cannot revoke access to an old image and its archived ciphertext.
 
-This workflow handles Wi-Fi bootstrap only. Pis still use the same `firefly-pi` hostname and start independent k3s servers; they do not enroll in the existing cluster. With multiple Pis, use the router's DHCP list to find their IPs rather than assuming `firefly-pi.local` identifies a particular card. Tailscale still needs its own login. Fresh-card radio/boot behavior requires hardware validation; filesystem and decryption tests do not prove it.
+This workflow handles Wi-Fi bootstrap only. A freshly flashed Pi is named `firefly-new` and does not run k3s. Boot one new card at a time so `firefly-new.local` identifies it. Tailscale still needs its own login. Fresh-card radio/boot behavior requires hardware validation; filesystem and decryption tests do not prove it.
 
 Run the host regressions with `node --test deploy/scripts.test.mjs nix/tests/build-image.test.mjs`. Run the Linux filesystem and activation tests in the builder:
 
@@ -115,15 +115,47 @@ sops --config .sops.yaml encrypt --input-type binary --output-type json \
 
 `delete` refuses while the Pi is connected unless you pass `--force`, and `route dns` refuses to repoint the existing wildcard record unless you pass `--overwrite-dns`. `create` prints the new tunnel ID, which is the `<uuid>` in the last command. Put that ID in `nix/tunnel.nix`, delete `~/.cloudflared/<uuid>.json`, then run `nix/deploy.sh`.
 
+#### Adding an agent Pi
+
+Cluster traffic runs over Tailscale, so this needs no router changes. `firefly-pi` must already be running the Tailscale-based k3s config. Replace `N` with 2, 3 or 4 for app workers, or 5 for the builder.
+
+1. Flash the reusable image, boot the Pi and log in to Tailscale under its final name:
+
+   ```bash
+   ssh firefly-new.local sudo tailscale up --hostname=firefly-pi-N
+   ```
+
+2. Print the card's recipient:
+
+   ```bash
+   ssh-keyscan -t ed25519 firefly-new.local 2>/dev/null | docker exec -i firefly-nix nix run nixpkgs#ssh-to-age
+   ```
+
+3. In `nix/.sops.yaml`, add it under `keys` as `&firefly-pi-N` and list `*firefly-pi-N` in the `k3s-agent-token.json` rule. Never add it through the `wifi-image` key. Then rewrap the token:
+
+   ```bash
+   SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
+     sops --config nix/.sops.yaml updatekeys --yes nix/k3s-agent-token.json
+   ```
+
+4. Deploy and check that the node joined:
+
+   ```bash
+   bash nix/deploy.sh firefly-pi-N
+   ssh firefly-pi sudo k3s kubectl get nodes -o wide
+   ```
+
+`nix/k3s-agent-token.json` holds the server's existing agent token. A replacement card needs its old recipient swapped for the new one before step 4, because sops-nix installs no secrets at all when one fails.
+
 #### Before the first deploy to a reflashed card
 
 `nix/deploy.sh` switches the Pi to `firefly-pi`, which needs the tunnel secret. A reflashed card has a new SSH host key, so it can't decrypt that secret, and sops-nix installs no secrets at all when one fails. The deploy would leave the card without Wi-Fi after its next reboot. Print the card's recipient first:
 
 ```bash
-ssh-keyscan -t ed25519 firefly-pi.local 2>/dev/null | docker exec -i firefly-nix nix run nixpkgs#ssh-to-age
+ssh-keyscan -t ed25519 firefly-new.local 2>/dev/null | docker exec -i firefly-nix nix run nixpkgs#ssh-to-age
 ```
 
-Replace `&firefly-pi` in `nix/.sops.yaml` with that recipient, rewrap both files with the admin key, and then deploy:
+Replace `&firefly-pi` in `nix/.sops.yaml` with that recipient and rewrap both files with the admin key:
 
 ```bash
 SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
@@ -131,6 +163,22 @@ SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
 SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
   sops --config nix/.sops.yaml updatekeys --yes nix/tunnel-credentials.json
 ```
+
+The card joins the tailnet as a new machine. Remove the old `firefly-pi` machine in the Tailscale admin console first, or the new one gets a suffixed name. Then log the card in and print its new address:
+
+```bash
+ssh firefly-new.local sudo tailscale up --hostname=firefly-pi
+ssh firefly-new.local tailscale ip -4
+```
+
+Put that address in `controlPlaneIp` in `nix/flake.nix` and `CONTROL_PLANE` in `nix/tests/test_config.py`. k3s won't start on the server until it can find its Tailscale address, and agents dial the address in the flake. Then deploy the server, followed by each agent so it picks up the new address:
+
+```bash
+bash nix/deploy.sh
+bash nix/deploy.sh firefly-pi-N
+```
+
+A server rebuilt without its old `/var/lib/rancher/k3s` starts a new cluster with a new agent token. In that case, re-encrypt `nix/k3s-agent-token.json` with the token from `/var/lib/rancher/k3s/server/agent-token` on the server before deploying the agents.
 
 Deploy `firefly-pi` to one Pi only. A second Pi running the same tunnel would receive a share of the public requests on its own separate cluster.
 

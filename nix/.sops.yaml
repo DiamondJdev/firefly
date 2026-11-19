@@ -16,3 +16,8 @@ creation_rules:
       - age:
           - *admin
           - *firefly-pi
+  # k3s agent join token: add each agent's host key when that Pi is provisioned, never the wifi-image key.
+  - path_regex: ^k3s-agent-token\.json$
+    key_groups:
+      - age:
+          - *admin

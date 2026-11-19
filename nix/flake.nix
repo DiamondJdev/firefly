@@ -40,17 +40,39 @@
       # Never flash firefly-pi: a fresh card can't decrypt the tunnel secret, so it boots without Wi-Fi.
       nixosConfigurations =
         let
-          base = [
-            nixos-raspberrypi.nixosModules.raspberry-pi-5.base
-            nixos-raspberrypi.nixosModules.sd-image
-            sops-nix.nixosModules.sops
-            ./pi.nix
-          ];
+          # Pi #1's Tailscale address. A reflashed card gets a new one; see README "Before the first deploy to a reflashed card".
+          controlPlaneIp = "100.79.119.115";
+          host =
+            hostName: modules:
+            nixos-raspberrypi.lib.nixosSystem {
+              modules = [
+                nixos-raspberrypi.nixosModules.raspberry-pi-5.base
+                nixos-raspberrypi.nixosModules.sd-image
+                sops-nix.nixosModules.sops
+                ./pi.nix
+                { networking.hostName = hostName; }
+              ]
+              ++ modules;
+            };
+          agent = args: import ./k3s-agent.nix ({ inherit controlPlaneIp; } // args);
+          worker = agent { labels = [ "serve=true" ]; };
         in
         {
-          firefly-pi = nixos-raspberrypi.lib.nixosSystem { modules = base ++ [ ./tunnel.nix ]; };
-          # Reusable Wi-Fi image: only secrets the wifi-image key can decrypt.
-          firefly-pi-image = nixos-raspberrypi.lib.nixosSystem { modules = base; };
+          firefly-pi = host "firefly-pi" [
+            ./tunnel.nix
+            (import ./k3s-server.nix { inherit controlPlaneIp; })
+          ];
+          firefly-pi-2 = host "firefly-pi-2" [ worker ];
+          firefly-pi-3 = host "firefly-pi-3" [ worker ];
+          firefly-pi-4 = host "firefly-pi-4" [ worker ];
+          firefly-pi-5 = host "firefly-pi-5" [
+            (agent {
+              labels = [ "role=builder" ];
+              taints = [ "builder=true:NoSchedule" ];
+            })
+          ];
+          # Reusable Wi-Fi image: no k3s, and only secrets the wifi-image key can decrypt.
+          firefly-pi-image = host "firefly-new" [ ];
         };
     };
 }
