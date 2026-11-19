@@ -2,6 +2,7 @@
 keys:
   - &admin age1h69ywtazuzymjmfl0n0gd95sae24xt7u9hvf826llr33k94yk3eqg52f7l
   - &firefly-pi age1p2vpyp9fda5y288yzt3gk8hjmguseeyznjl3anv4lskfdf7npyeshesrus
+  - &firefly-pi-2 age12xkrya9ymwtt5acmus3yndqlaqzs5dxrzq05vnzgprpy8nqcwv4st0h00e
   - &wifi-image age1uwf2z2azunfppz4swk373fpfa2vch6sg0svd4lnyalrxmxksk9rs9e758t
 creation_rules:
   - path_regex: ^secrets\.yaml$
@@ -21,3 +22,4 @@ creation_rules:
     key_groups:
       - age:
           - *admin
+          - *firefly-pi-2

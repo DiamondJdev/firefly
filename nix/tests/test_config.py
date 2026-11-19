@@ -147,6 +147,8 @@ class ClusterHostTests(unittest.TestCase):
             self.assertEqual(agent["server"], f"https://{self.CONTROL_PLANE}:6443")
             self.assertEqual(agent["tokenFile"], agent["tokenPath"])
             self.assertIn("--flannel-iface=tailscale0", agent["flags"])
+            # A first deploy from firefly-new keeps the old running hostname until reboot.
+            self.assertIn(f"--node-name={name}", agent["flags"])
 
     def test_node_roles_match_the_design(self):
         for name in self.AGENTS[:3]:

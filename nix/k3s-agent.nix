@@ -19,6 +19,8 @@
     tokenFile = config.sops.secrets.k3s-agent-token.path;
     extraFlags = [
       "--flannel-iface=tailscale0"
+      # A first deploy from firefly-new keeps the old running hostname until reboot.
+      "--node-name=${config.networking.hostName}"
     ]
     ++ map (label: "--node-label=${label}") labels
     ++ map (taint: "--node-taint=${taint}") taints;
