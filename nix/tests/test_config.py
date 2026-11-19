@@ -107,8 +107,9 @@ class ClusterHostTests(unittest.TestCase):
               tokenPath = c.sops.secrets.k3s-agent-token.path or null;
               trusted = c.networking.firewall.trustedInterfaces;
               tcp = c.networking.firewall.allowedTCPPorts;
-              nodeIpScript = c.systemd.services.k3s-node-ip.script or null;
-              waitsForNodeIp = builtins.elem "k3s-node-ip.service" (c.systemd.services.k3s.requires or []);
+              nodeIpScript = c.systemd.services.k3s.preStart or null;
+              restart = c.systemd.services.k3s.serviceConfig.Restart or null;
+              separateNodeIpUnit = c.systemd.services ? k3s-node-ip;
             }) hosts""",
         ], check=True, capture_output=True, text=True)
         cls.hosts = json.loads(result.stdout)
@@ -159,7 +160,10 @@ class ClusterHostTests(unittest.TestCase):
     def test_cluster_traffic_stays_off_the_lan(self):
         for name in ["firefly-pi", *self.AGENTS]:
             host = self.hosts[name]
-            self.assertTrue(host["waitsForNodeIp"])
+            self.assertIn("tailscale ip -4", host["nodeIpScript"])
+            # One try per start: k3s's own Restart=always retries, so a slow boot recovers on its own.
+            self.assertEqual(host["restart"], "always")
+            self.assertFalse(host["separateNodeIpUnit"])
             self.assertIn("tailscale0", host["trusted"])
             self.assertIn("flannel.1", host["trusted"])
             self.assertFalse({6443, 10250} & set(host["tcp"]))
@@ -167,28 +171,30 @@ class ClusterHostTests(unittest.TestCase):
     def run_node_ip_script(self, directory, tailscale_body):
         tools = Path(directory) / "bin"
         tools.mkdir()
-        for name, body in {"tailscale": tailscale_body, "sleep": "exit 0"}.items():
-            tool = tools / name
-            tool.write_text(f"#!/bin/sh\n{body}\n")
-            tool.chmod(0o755)
+        calls = Path(directory) / "calls"
+        tool = tools / "tailscale"
+        tool.write_text(f"#!/bin/sh\necho x >> {calls}\n{tailscale_body}\n")
+        tool.chmod(0o755)
         target = Path(directory) / "config.yaml.d"
         script = self.hosts["firefly-pi-2"]["nodeIpScript"].replace("/etc/rancher/k3s/config.yaml.d", str(target))
         result = subprocess.run(
             ["bash", "-eu", "-c", script], capture_output=True, text=True,
             env={"PATH": f"{tools}:{os.environ['PATH']}"},
         )
-        return result, target / "10-node-ip.yaml"
+        tries = len(calls.read_text().splitlines()) if calls.exists() else 0
+        return result, target / "10-node-ip.yaml", tries
 
     def test_node_ip_comes_from_tailscale(self):
         with tempfile.TemporaryDirectory() as directory:
-            result, output = self.run_node_ip_script(directory, "echo 100.64.0.2")
+            result, output, _ = self.run_node_ip_script(directory, "echo 100.64.0.2")
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(output.read_text(), "node-ip: 100.64.0.2\n")
 
     def test_k3s_does_not_start_before_tailscale_login(self):
         with tempfile.TemporaryDirectory() as directory:
-            result, output = self.run_node_ip_script(directory, "exit 1")
+            result, output, tries = self.run_node_ip_script(directory, "exit 1")
             self.assertEqual(result.returncode, 1)
+            self.assertEqual(tries, 1)
             self.assertIn("tailscale up", result.stderr)
             self.assertFalse(output.exists())
 

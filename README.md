@@ -155,7 +155,7 @@ Cluster traffic runs over Tailscale, so this needs no router changes. `firefly-p
 ssh-keyscan -t ed25519 firefly-new.local 2>/dev/null | docker exec -i firefly-nix nix run nixpkgs#ssh-to-age
 ```
 
-Replace `&firefly-pi` in `nix/.sops.yaml` with that recipient, rewrap both files with the admin key, and then deploy:
+Replace `&firefly-pi` in `nix/.sops.yaml` with that recipient and rewrap both files with the admin key:
 
 ```bash
 SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
@@ -163,6 +163,22 @@ SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
 SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
   sops --config nix/.sops.yaml updatekeys --yes nix/tunnel-credentials.json
 ```
+
+The card joins the tailnet as a new machine. Remove the old `firefly-pi` machine in the Tailscale admin console first, or the new one gets a suffixed name. Then log the card in and print its new address:
+
+```bash
+ssh firefly-new.local sudo tailscale up --hostname=firefly-pi
+ssh firefly-new.local tailscale ip -4
+```
+
+Put that address in `controlPlaneIp` in `nix/flake.nix` and `CONTROL_PLANE` in `nix/tests/test_config.py`. k3s won't start on the server until it can find its Tailscale address, and agents dial the address in the flake. Then deploy the server, followed by each agent so it picks up the new address:
+
+```bash
+bash nix/deploy.sh
+bash nix/deploy.sh firefly-pi-N
+```
+
+A server rebuilt without its old `/var/lib/rancher/k3s` starts a new cluster with a new agent token. In that case, re-encrypt `nix/k3s-agent-token.json` with the token from `/var/lib/rancher/k3s/server/agent-token` on the server before deploying the agents.
 
 Deploy `firefly-pi` to one Pi only. A second Pi running the same tunnel would receive a share of the public requests on its own separate cluster.
 

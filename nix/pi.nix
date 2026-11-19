@@ -30,7 +30,7 @@
     settings.PermitRootLogin = "no";
   };
 
-  # First SSH via firefly-new.local, before Tailscale is logged in.
+  # First SSH via <hostname>.local (firefly-new.local on a fresh card), before Tailscale is logged in.
   services.avahi = {
     enable = true;
     nssmdns4 = true;

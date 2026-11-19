@@ -40,7 +40,7 @@
       # Never flash firefly-pi: a fresh card can't decrypt the tunnel secret, so it boots without Wi-Fi.
       nixosConfigurations =
         let
-          # Pi #1's Tailscale address. It stays the same unless the node is removed from the tailnet.
+          # Pi #1's Tailscale address. A reflashed card gets a new one; see README "Before the first deploy to a reflashed card".
           controlPlaneIp = "100.79.119.115";
           host =
             hostName: modules:
